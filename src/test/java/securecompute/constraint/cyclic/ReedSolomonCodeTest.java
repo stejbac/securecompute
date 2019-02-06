@@ -33,10 +33,8 @@ class ReedSolomonCodeTest<E> {
     private static final int n = 1000, k = 100;
 
     private static final ReedSolomonCode<?> CODE = new ReedSolomonCode<>(n, k, QUADRATIC_FIELD);
-    private static final ReedSolomonCode<?> CODE2 = new ReedSolomonCode<>(n, k * 2 - 1, QUADRATIC_FIELD);
 
     private ReedSolomonCode<E> code = (ReedSolomonCode<E>) CODE;
-    private ReedSolomonCode<E> code2 = (ReedSolomonCode<E>) CODE2;
 
     @Retention(RetentionPolicy.RUNTIME)
     @ParameterizedTest(name = "Message {arguments}")
@@ -111,7 +109,7 @@ class ReedSolomonCodeTest<E> {
         List<E> pairwiseProduct = Streams.zip(codeword1.stream(), codeword2.stream(), code.field()::product)
                 .collect(ImmutableList.toImmutableList());
 
-        Assertions.assertTrue(code2.isValid(pairwiseProduct));
+        Assertions.assertTrue(code.pow(2).isValid(pairwiseProduct));
     }
 
     @Test
