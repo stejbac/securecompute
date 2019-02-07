@@ -13,12 +13,15 @@ public class ConcatenatedLinearCode<V, E> extends ConcatenatedAlgebraicConstrain
     private final int dimension;
     private final int distance;
     private final int redundancy;
+    private final int codistance;
 
     public ConcatenatedLinearCode(LinearCode<V, E> rowCode, LinearCode<List<V>, E> outerCode) {
         super(rowCode, outerCode);
         dimension = rowCode.dimension() * outerCode.dimension();
         distance = rowCode.distance() * outerCode.distance();
         redundancy = rowCode.length() * outerCode.redundancy() + rowCode.redundancy() * outerCode.dimension();
+        // TODO: Check this bound is correct (& sharp):
+        codistance = Math.min(rowCode.codistance(), outerCode.codistance());
     }
 
     @Override
@@ -44,6 +47,11 @@ public class ConcatenatedLinearCode<V, E> extends ConcatenatedAlgebraicConstrain
     @Override
     public int redundancy() {
         return redundancy;
+    }
+
+    @Override
+    public int codistance() {
+        return codistance;
     }
 
     @Override

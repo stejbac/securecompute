@@ -8,4 +8,6 @@ public interface LinearCode<V, E> extends LinearConstraint<V, E>, Code<V> {
     default int redundancy() {
         return length() - dimension();
     }
+
+    int codistance();
 }

@@ -28,13 +28,13 @@ class GridProofTest {
     private static final ReedSolomonCode<Gf256.Element> ROW_CODE = new ReedSolomonCode<>(255, 85, AES_FIELD);
     private static final ReedSolomonCode<Gf256.Element> COL_CODE = new ReedSolomonCode<>(200, 50, AES_FIELD);
 
-    private static final AlgebraicConstraint<Gf256.Element, Gf256.Element> ROW_MESSAGE_CONSTRAINT = algebraicConstraint(2, 85,
+    private static final AlgebraicConstraint<Gf256.Element, Gf256.Element> ROW_MESSAGE_CONSTRAINT = algebraicConstraint(2, 85, 1,
             BLOCK_SPACE,
             v -> ImmutableList.of(v.get(0).multiply(v.get(1)).subtract(AES_FIELD.one()))
 //            v.get(0).multiply(v.get(1)).equals(AES_FIELD.one())
     );
 
-    private static final AlgebraicConstraint<Gf256.Element, Gf256.Element> COL_MESSAGE_CONSTRAINT = algebraicConstraint(1, 50,
+    private static final AlgebraicConstraint<Gf256.Element, Gf256.Element> COL_MESSAGE_CONSTRAINT = algebraicConstraint(1, 50, 1,
             BLOCK_SPACE,
             v -> ImmutableList.of(v.get(0).add(v.get(1)).add(v.get(2)).subtract(AES_FIELD.one()))
 //            v.get(0).add(v.get(1)).add(v.get(2)).equals(AES_FIELD.one())
@@ -70,9 +70,9 @@ class GridProofTest {
     }
 
     // TODO: Consider adding 'GeneralAlgebraicConstraint' (along with a builder) to the production code, in place of this:
-    private static <V, E> AlgebraicConstraint<V, E> algebraicConstraint(int degree, int length,
-                                                                        FiniteVectorSpace<V, E> symbolSpace,
-                                                                        Function<List<V>, List<V>> parityCheckFn) {
+    static <V, E> AlgebraicConstraint<V, E> algebraicConstraint(int degree, int length, int redundancy,
+                                                                FiniteVectorSpace<V, E> symbolSpace,
+                                                                Function<List<V>, List<V>> parityCheckFn) {
         return new AlgebraicConstraint<V, E>() {
             @Override
             public FiniteVectorSpace<V, E> symbolSpace() {
@@ -91,7 +91,7 @@ class GridProofTest {
 
             @Override
             public int redundancy() {
-                return 1;
+                return redundancy;
             }
 
             @Override

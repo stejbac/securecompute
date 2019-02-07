@@ -1,8 +1,6 @@
 package securecompute.constraint.cyclic;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Streams;
+import com.google.common.collect.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -14,10 +12,7 @@ import securecompute.algebra.Gf65536;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -33,8 +28,19 @@ class ReedSolomonCodeTest<E> {
     private static final int n = 1000, k = 100;
 
     private static final ReedSolomonCode<?> CODE = new ReedSolomonCode<>(n, k, QUADRATIC_FIELD);
+    private static final Map<Integer, ?> KNOWN_SYMBOL_TEST_MAP = Maps.transformValues(ImmutableSortedMap.of(
+            0, 0b00000000,
+            1, 0b00000001,
+            10, 0b00000010,
+            100, 0b00000100,
+            999, 0b00001000
+    ), x -> {
+        // noinspection ConstantConditions
+        return QUADRATIC_FIELD.element(AES_FIELD.element(x), AES_FIELD.zero());
+    });
 
     private ReedSolomonCode<E> code = (ReedSolomonCode<E>) CODE;
+    private Map<Integer, E> knownSymbolTestMap = (Map<Integer, E>) KNOWN_SYMBOL_TEST_MAP;
 
     @Retention(RetentionPolicy.RUNTIME)
     @ParameterizedTest(name = "Message {arguments}")
@@ -96,6 +102,7 @@ class ReedSolomonCodeTest<E> {
 
     @ParamTest
     void codeIsSystematic(List<E> message) {
+        assertTrue(code.isSystematic());
         assertEquals(message, code.encode(message).subList(n - k, n));
     }
 
@@ -115,6 +122,17 @@ class ReedSolomonCodeTest<E> {
     @Test
     void codeIsUnshortened() {
         assertTrue(code.shortenNumber() == 0);
+    }
+
+    @Test
+    void interpolationGivesCorrectCodeword() {
+        List<E> codeword = code.interpolate(knownSymbolTestMap);
+        Assertions.assertTrue(code.isValid(codeword));
+        // noinspection ConstantConditions
+        assertEquals(knownSymbolTestMap, Maps.transformEntries(knownSymbolTestMap, (i, x) -> codeword.get(i)));
+
+        ReedSolomonCode<E> innerCode = new ReedSolomonCode<>(n, knownSymbolTestMap.size(), code.field());
+        Assertions.assertTrue(innerCode.isValid(codeword));
     }
 
     // TODO: Consider adding test that X^(n+1) div (X - g^i) shift -1 is a codeword _only_ for 0 <= i < k.

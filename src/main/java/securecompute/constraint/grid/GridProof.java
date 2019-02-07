@@ -2,6 +2,7 @@ package securecompute.constraint.grid;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Streams;
 import securecompute.constraint.Constraint;
 import securecompute.constraint.LinearCode;
 import securecompute.constraint.LocallyTestableProof;
@@ -9,14 +10,15 @@ import securecompute.constraint.MultiplicativeLinearCode;
 import securecompute.constraint.block.BlockConstraint;
 import securecompute.constraint.block.BlockLinearCode;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyTestableProof<List<V>> {
 
-    private final GridLinearCode<V, E> topLayerCode;
+    final GridLinearCode<V, E> topLayerCode, topLayerOuterCode; // TODO: Consider making these private & adding package-private getter.
     private final GridLinearCode<List<V>, E> innerGridCode;
-    private final GridLinearCode<List<V>, E> outerGridCode;
+    final GridLinearCode<List<V>, E> outerGridCode; // TODO: Consider making this private & adding package-private getter.
     private final TripleLayerConstraint<V, E> messageConstraint;
 
     public GridProof(GridLinearCode<V, E> topLayerCode, TripleLayerConstraint<V, E> messageConstraint) {
@@ -37,6 +39,11 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
         outerGridCode = new GridLinearCode<>(
                 ((LineConstraint<V, E>) rowConstraint()).outerCode,
                 ((LineConstraint<V, E>) columnConstraint()).outerCode
+        );
+
+        topLayerOuterCode = new GridLinearCode<>(
+                ((LineConstraint<V, E>) rowConstraint()).topLayerOuterCode,
+                ((LineConstraint<V, E>) columnConstraint()).topLayerOuterCode
         );
     }
 
@@ -66,23 +73,25 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
 
     @Override
     public List<List<V>> encode(List<List<V>> witness) {
-        List<V> messageTopLayer = topLayer(witness);
+        List<V> messageTopLayer = paddedTopLayer(witness);
         List<V> topLayer = topLayerCode.encode(messageTopLayer);
 
         // TODO: Try to make this more efficient...
         List<List<V>> topLayerRows = Lists.partition(topLayer, rowConstraint().length());
         List<List<V>> topLayerColumns = BlockConstraint.transpose(topLayerRows, rowConstraint().length());
 
-        List<V> middleLayer = topLayerRows.stream()
-                .map(topLayerCode.rowConstraint()::decode)
-                .map(messageConstraint.rowConstraint()::zeroExtendedParity)
+        List<V> middleLayer = Streams.zip(rowPaddingBlock().stream(),
+                topLayerRows.stream().map(topLayerCode.rowConstraint()::decode),
+                messageConstraint.rowConstraint()::zeroExtendedParity
+        )
                 .map(topLayerCode.rowConstraint()::encode)
                 .flatMap(List::stream)
                 .collect(ImmutableList.toImmutableList());
 
-        List<List<V>> bottomLayerColumns = topLayerColumns.stream()
-                .map(topLayerCode.columnConstraint()::decode)
-                .map(messageConstraint.columnConstraint()::zeroExtendedParity)
+        List<List<V>> bottomLayerColumns = Streams.zip(columnPaddingBlock().stream(),
+                topLayerColumns.stream().map(topLayerCode.columnConstraint()::decode),
+                messageConstraint.columnConstraint()::zeroExtendedParity
+        )
                 .map(topLayerCode.columnConstraint()::encode)
                 .collect(ImmutableList.toImmutableList());
 
@@ -93,12 +102,20 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
         return BlockConstraint.transpose(ImmutableList.of(topLayer, middleLayer, bottomLayer), length());
     }
 
-    private List<V> topLayer(List<List<V>> witness) {
+    List<V> paddedTopLayer(List<List<V>> witness) {
         if (!witnessConstraint().isValid(witness)) {
             throw new IllegalArgumentException("Cannot encode an invalid witness");
         }
         List<List<V>> messageLayers = BlockConstraint.transpose(witness, 3);
         return messageLayers.get(0);
+    }
+
+    List<List<V>> rowPaddingBlock() {
+        return Collections.nCopies(columnConstraint().length(), Collections.<V>emptyList());
+    }
+
+    List<List<V>> columnPaddingBlock() {
+        return Collections.nCopies(rowConstraint().length(), Collections.<V>emptyList());
     }
 
     @Override

@@ -19,13 +19,14 @@ public class PuncturedPolynomialCode<E> implements LinearCode<E, E> {
     private final int length;
     private final int dimension;
     private final int distance;
+    private final int codistance;
     private final Polynomial<E> generatorPolynomial;
     private final Polynomial<E> checkPolynomial;
     private final Polynomial<E> truncatedCheckPolynomial;
     private final int punctureNumber;
     private final int shortenNumber;
 
-    public PuncturedPolynomialCode(int n, int k, int d, Polynomial<E> generatorPolynomial) {
+    public PuncturedPolynomialCode(int n, int k, int d, int e, Polynomial<E> generatorPolynomial) {
         if (generatorPolynomial.getDegree() < 0) {
             throw new IllegalArgumentException("Generator polynomial is zero");
         }
@@ -38,13 +39,20 @@ public class PuncturedPolynomialCode<E> implements LinearCode<E, E> {
         if (d <= 0) {
             throw new IllegalArgumentException("Negative or zero distance d");
         }
+        if (e <= 0) {
+            throw new IllegalArgumentException("Negative or zero codistance e");
+        }
         if (d > n - k + 1) {
             throw new IllegalArgumentException("Singleton bound violation: d > n - k + 1");
+        }
+        if (e > k + 1) {
+            throw new IllegalArgumentException("Singleton bound violation: e > k + 1");
         }
 
         this.length = n;
         this.dimension = k; // n - generatorPolynomial.getDegree();
         this.distance = d;
+        this.codistance = e;
 
         this.generatorPolynomial = generatorPolynomial = normalise(generatorPolynomial, n - 1);
         this.polynomialRing = generatorPolynomial.getEuclideanDomain();
@@ -97,6 +105,11 @@ public class PuncturedPolynomialCode<E> implements LinearCode<E, E> {
     }
 
     @Override
+    public boolean isSystematic() {
+        return true;
+    }
+
+    @Override
     public SingletonVectorSpace<E> symbolSpace() {
         return symbolSpace;
     }
@@ -114,6 +127,11 @@ public class PuncturedPolynomialCode<E> implements LinearCode<E, E> {
     @Override
     public int distance() {
         return distance;
+    }
+
+    @Override
+    public int codistance() {
+        return codistance;
     }
 
     private static <E> List<E> paddedCoefficients(int size, Polynomial<E> polynomial) {

@@ -33,10 +33,10 @@ class GridLinearCodeTest {
             .collect(ImmutableList.toImmutableList());
 
     private static final PuncturedPolynomialCode<Boolean> HAMMING_CODE = new PuncturedPolynomialCode<>(
-            7, 4, 3, HAMMING_FACTORS.get(0));
+            7, 4, 3, 3, HAMMING_FACTORS.get(0));
 
     private static final PuncturedPolynomialCode<Boolean> BINARY_GOLAY_CODE = new PuncturedPolynomialCode<>(
-            23, 12, 7, GOLAY_FACTORS.get(0));
+            23, 12, 7, 7, GOLAY_FACTORS.get(0));
 
 //    private static final PuncturedPolynomialCode<Boolean> EXTENDED_BINARY_GOLAY_CODE = new PuncturedPolynomialCode<>(
 //            24, 12, 8, GOLAY_FACTORS.get(0).multiply(GOLAY_FACTORS.get(2)));

@@ -11,10 +11,27 @@ import java.util.List;
 public class TripleLayerConstraint<V, E> extends GridConstraint<List<V>> {
 
     public TripleLayerConstraint(AlgebraicConstraint<V, E> topRowConstraint, AlgebraicConstraint<V, E> topColumnConstraint) {
+        this(topRowConstraint, topColumnConstraint, 0, 0);
+    }
+
+    private TripleLayerConstraint(AlgebraicConstraint<V, E> topRowConstraint, AlgebraicConstraint<V, E> topColumnConstraint,
+                                  int rowPadding, int columnPadding) {
         super(
-                new LineConstraint<>(topRowConstraint, 1),
-                new LineConstraint<>(topColumnConstraint, 2)
+                new LineConstraint<>(topRowConstraint, 1, rowPadding),
+                new LineConstraint<>(topColumnConstraint, 2, columnPadding)
         );
+    }
+
+    static <V, E> TripleLayerConstraint<V, E> extendToSize(TripleLayerConstraint<V, E> constraint, int newWidth, int newHeight) {
+        if (constraint.rowConstraint().padding > 0 || constraint.columnConstraint().padding > 0) {
+            throw new AssertionError("Constraint already padded");
+        }
+        int rowPadding = newWidth - constraint.rowConstraint().length();
+        int columnPadding = newHeight - constraint.columnConstraint().length();
+
+        return new TripleLayerConstraint<>(
+                constraint.rowConstraint().topConstraint, constraint.columnConstraint().topConstraint,
+                rowPadding, columnPadding);
     }
 
     @Override
@@ -31,11 +48,13 @@ public class TripleLayerConstraint<V, E> extends GridConstraint<List<V>> {
 
         private final AlgebraicConstraint<V, E> topConstraint;
         private final int parityLayerIndex;
+        private final int padding; // TODO: Should we rename this 'paddingLength' for consistency (here & elsewhere)?
 //        private final BlockFiniteVectorSpace<V, E> symbolSpace, layerSpace;
 
-        private LineConstraint(AlgebraicConstraint<V, E> topConstraint, int parityLayerIndex) {
+        private LineConstraint(AlgebraicConstraint<V, E> topConstraint, int parityLayerIndex, int padding) {
             this.topConstraint = topConstraint;
             this.parityLayerIndex = parityLayerIndex;
+            this.padding = padding;
             if (topConstraint.length() < topConstraint.redundancy()) {
                 throw new IllegalArgumentException("Row/column constraint must have redundancy no larger than its length");
             }
@@ -58,12 +77,12 @@ public class TripleLayerConstraint<V, E> extends GridConstraint<List<V>> {
 
         @Override
         public int length() {
-            return topConstraint.length();
+            return topConstraint.length() + padding;
         }
 
         @Override
         public boolean isValid(List<List<V>> vector) {
-            List<List<V>> layers = BlockConstraint.streamLayers(vector, 3)
+            List<List<V>> layers = BlockConstraint.streamLayers(vector.subList(padding, length()), 3)
                     .collect(ImmutableList.toImmutableList());
 
             List<V> topLayer = layers.get(0);
@@ -71,7 +90,7 @@ public class TripleLayerConstraint<V, E> extends GridConstraint<List<V>> {
             List<V> zeroLayer = layers.get(3 - parityLayerIndex);
 
             // TODO: For consistency, should we pad out a short parity layer with zeros at the beginning, instead of the end?
-            return isZero(zeroLayer) && isZero(parityLayer.subList(topConstraint.redundancy(), length())) &&
+            return isZero(zeroLayer) && isZero(parityLayer.subList(topConstraint.redundancy(), length() - padding)) &&
                     topConstraint.parityCheck(topLayer).equals(parityLayer.subList(0, topConstraint.redundancy()));
         }
 
@@ -91,7 +110,7 @@ public class TripleLayerConstraint<V, E> extends GridConstraint<List<V>> {
 
 //        @Override
 //        public List<List<V>> parityCheck(List<List<V>> vector) {
-//            List<List<V>> layers = BlockConstraint.streamLayers(vector, 3)
+//            List<List<V>> layers = BlockConstraint.streamLayers(vector.subList(padding, length()), 3)
 //                    .collect(Collectors.toList());
 //
 //            List<V> topLayerParity = zeroExtendedParity(layers.get(0));
@@ -102,11 +121,16 @@ public class TripleLayerConstraint<V, E> extends GridConstraint<List<V>> {
 //        }
 
         List<V> zeroExtendedParity(List<V> topLayer) {
-            List<V> syndrome = topConstraint.parityCheck(topLayer);
+            return zeroExtendedParity(ImmutableList.of(), topLayer);
+        }
+
+        List<V> zeroExtendedParity(List<V> prefix, List<V> topLayer) {
+            List<V> syndrome = topConstraint.parityCheck(topLayer.subList(padding, length()));
             // TODO: This is very similar to PuncturedPolynomialCode.paddedCoefficients - DEDUPLICATE.
             return ImmutableList.<V>builderWithExpectedSize(length())
+                    .addAll(prefix)
                     .addAll(syndrome)
-                    .addAll(Collections.nCopies(length() - syndrome.size(), topConstraint.symbolSpace().zero()))
+                    .addAll(Collections.nCopies(length() - prefix.size() - syndrome.size(), topConstraint.symbolSpace().zero()))
                     .build();
         }
     }
