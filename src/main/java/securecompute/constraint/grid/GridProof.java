@@ -21,29 +21,24 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
     final GridLinearCode<List<V>, E> outerGridCode; // TODO: Consider making this private & adding package-private getter.
     private final TripleLayerConstraint<V, E> messageConstraint;
 
+    private GridProof(GridLinearCode<V, E> topLayerCode, TripleLayerConstraint<V, E> messageConstraint,
+                      LineConstraint<V, E> rowConstraint, LineConstraint<V, E> columnConstraint) {
+        super(rowConstraint, columnConstraint);
+
+        this.topLayerCode = topLayerCode;
+        this.messageConstraint = messageConstraint;
+
+        innerGridCode = new GridLinearCode<>(rowConstraint.innerCode, columnConstraint.innerCode);
+        outerGridCode = new GridLinearCode<>(rowConstraint.outerCode, columnConstraint.outerCode);
+        topLayerOuterCode = new GridLinearCode<>(rowConstraint.topLayerOuterCode, columnConstraint.topLayerOuterCode);
+    }
+
     public GridProof(GridLinearCode<V, E> topLayerCode, TripleLayerConstraint<V, E> messageConstraint) {
-        super(
+        this(topLayerCode, messageConstraint,
                 new LineConstraint<>(messageConstraint.rowConstraint(), topLayerCode.rowConstraint(),
                         messageConstraint.columnConstraint().topConstraint().degree()),
                 new LineConstraint<>(messageConstraint.columnConstraint(), topLayerCode.columnConstraint(),
                         messageConstraint.rowConstraint().topConstraint().degree())
-        );
-        this.topLayerCode = topLayerCode;
-        this.messageConstraint = messageConstraint;
-
-        innerGridCode = new GridLinearCode<>(
-                ((LineConstraint<V, E>) rowConstraint()).innerCode,
-                ((LineConstraint<V, E>) columnConstraint()).innerCode
-        );
-
-        outerGridCode = new GridLinearCode<>(
-                ((LineConstraint<V, E>) rowConstraint()).outerCode,
-                ((LineConstraint<V, E>) columnConstraint()).outerCode
-        );
-
-        topLayerOuterCode = new GridLinearCode<>(
-                ((LineConstraint<V, E>) rowConstraint()).topLayerOuterCode,
-                ((LineConstraint<V, E>) columnConstraint()).topLayerOuterCode
         );
     }
 

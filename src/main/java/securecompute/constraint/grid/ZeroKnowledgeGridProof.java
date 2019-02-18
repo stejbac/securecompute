@@ -222,7 +222,9 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
 
             fillInFakeRowAndColumnSamples(sampledRows, sampledColumns);
 
+            @SuppressWarnings("unchecked")
             GridLinearCode.SimpleLocalTest<List<V>, E> singleTest = (GridLinearCode.SimpleLocalTest<List<V>, E>) singleTest();
+
             return new LocallyTestableCode.RepeatedLocalTest.Evidence(evidence.evidenceList().stream()
                     .map(e -> {
                         GridLinearCode.SimpleLocalTest<?, ?>.Evidence e2 = (GridLinearCode.SimpleLocalTest<?, ?>.Evidence) e;

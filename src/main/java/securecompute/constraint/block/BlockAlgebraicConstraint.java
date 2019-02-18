@@ -21,6 +21,7 @@ public class BlockAlgebraicConstraint<V, E> extends BlockConstraint<V> implement
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public AlgebraicConstraint<V, E> columnConstraint() {
         return (AlgebraicConstraint<V, E>) super.columnConstraint();
     }
@@ -51,19 +52,6 @@ public class BlockAlgebraicConstraint<V, E> extends BlockConstraint<V> implement
                 .collect(ImmutableList.toImmutableList());
 
         int size = mappedColumns.isEmpty() ? 0 : mappedColumns.get(0).size();
-
         return transpose(mappedColumns, size);
-
-//        List<List<V>> mappedColumns = IntStream.range(0, rowLength())
-//                .mapToObj(i -> Lists.transform(rows, row -> row.get(i)))
-//                .map(columnMapping)
-//                .collect(ImmutableList.toImmutableList());
-//
-//        int size = mappedColumns.isEmpty() ? 0 : mappedColumns.get(0).size();
-//        return IntStream.range(0, size)
-//                .mapToObj(i -> mappedColumns.stream()
-//                        .map(column -> column.get(i))
-//                        .collect(ImmutableList.toImmutableList()))
-//                .collect(ImmutableList.toImmutableList());
     }
 }
