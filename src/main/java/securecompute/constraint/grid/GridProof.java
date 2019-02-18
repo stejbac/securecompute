@@ -174,7 +174,7 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
             List<List<V>> layers = BlockConstraint.streamLayers(vector, 3).collect(Collectors.toList());
             return topLayerCode.isValid(layers.get(0)) &&
                     topLayerCode.isValid(layers.get(parityLayerIndex)) &&
-                    outerCode.columnConstraint().isValid(layers.get(3 - parityLayerIndex)) &&
+                    topLayerOuterCode.isValid(layers.get(3 - parityLayerIndex)) &&
                     messageConstraint.isValid(innerCode.decode(vector));
         }
     }
