@@ -7,10 +7,10 @@ import securecompute.algebra.Gf256;
 import securecompute.algebra.module.singleton.SingletonVectorSpace;
 import securecompute.constraint.AlgebraicConstraint;
 import securecompute.constraint.LocallyTestableCode.LocalTest;
-import securecompute.constraint.LocallyTestableCode.RepeatedLocalTest;
+import securecompute.constraint.LocallyTestableCode.RepeatedLocalTest.RepeatedEvidence;
 import securecompute.constraint.ZeroKnowledgeLocallyTestableProof.ZeroKnowledgeLocalTest;
-import securecompute.constraint.ZeroKnowledgeLocallyTestableProof.ZeroKnowledgeRepeatedLocalTest;
 import securecompute.constraint.cyclic.ReedSolomonCode;
+import securecompute.constraint.grid.GridLinearCode.SimpleGridEvidence;
 
 import java.util.Collections;
 import java.util.List;
@@ -60,7 +60,7 @@ class ZeroKnowledgeGridProofTest {
         System.out.println(minErrorRate);
 
         assertEquals(minErrorRate, GRID_PROOF.localTestOfMaximalPower().falseNegativeProbability(), 1e-15);
-        assertEquals(48, ((ZeroKnowledgeRepeatedLocalTest<?>) GRID_PROOF.localTestOfMaximalPower()).repetitionCount());
+        assertEquals(48, GRID_PROOF.localTestOfMaximalPower().repetitionCount());
     }
 
     @Test
@@ -81,7 +81,7 @@ class ZeroKnowledgeGridProofTest {
 
     @Test
     void encodedValidWitnessPassesMaxPowerTest() {
-        ZeroKnowledgeLocalTest<List<Gf256.Element>> maxPowerTest = GRID_PROOF.localTestOfMaximalPower();
+        ZeroKnowledgeLocalTest<List<Gf256.Element>, ?> maxPowerTest = GRID_PROOF.localTestOfMaximalPower();
 
         LocalTest.Evidence evidence = maxPowerTest.query(ENCODED_VALID_WITNESS, new Random(2468));
         assertFalse(evidence.isFailure());
@@ -90,23 +90,20 @@ class ZeroKnowledgeGridProofTest {
     @Test
     void simulatedEvidenceHasExpectedProperties() {
         GRID_PROOF.getRandom().setSeed(3579);
-        ZeroKnowledgeLocalTest<List<Gf256.Element>> maxPowerTest = GRID_PROOF.localTestOfMaximalPower();
+        ZeroKnowledgeGridProof<Gf256.Element, ?>.RepeatedLocalTest maxPowerTest = GRID_PROOF.localTestOfMaximalPower();
 
-        LocalTest.Evidence realEvidence = maxPowerTest.query(ENCODED_VALID_WITNESS, new Random(2468));
-        LocalTest.Evidence simulatedEvidence = maxPowerTest.simulate(new Random(2468));
+        RepeatedEvidence<? extends SimpleGridEvidence<?>> realEvidence = maxPowerTest.query(ENCODED_VALID_WITNESS, new Random(2468));
+        RepeatedEvidence<? extends SimpleGridEvidence<?>> simulatedEvidence = maxPowerTest.simulate(new Random(2468));
 
-        List<LocalTest.Evidence> realEvidenceList = ((RepeatedLocalTest.Evidence) realEvidence).evidenceList();
-        List<LocalTest.Evidence> simulatedEvidenceList = ((RepeatedLocalTest.Evidence) simulatedEvidence).evidenceList();
+        List<? extends SimpleGridEvidence<?>> realEvidenceList = realEvidence.evidenceList();
+        List<? extends SimpleGridEvidence<?>> simulatedEvidenceList = simulatedEvidence.evidenceList();
 
         // Real vs. simulated sampled rows & columns are the same, given the same random seed...
         assertEquals(realEvidenceList.size(), simulatedEvidenceList.size());
         assertAll(Streams.zip(realEvidenceList.stream(), simulatedEvidenceList.stream(), (e, f) -> () -> {
-            GridLinearCode.SimpleLocalTest<?, ?>.Evidence e2 = (GridLinearCode.SimpleLocalTest<?, ?>.Evidence) e;
-            GridLinearCode.SimpleLocalTest<?, ?>.Evidence f2 = (GridLinearCode.SimpleLocalTest<?, ?>.Evidence) f;
-
-            assertEquals(e2.getClass(), f2.getClass());
-            assertEquals(e2.x, f2.x);
-            assertEquals(e2.y, f2.y);
+            assertEquals(e.getClass(), f.getClass());
+            assertEquals(e.x, f.x);
+            assertEquals(e.y, f.y);
         }));
 
         // Simulated evidence is valid.
@@ -123,13 +120,12 @@ class ZeroKnowledgeGridProofTest {
         assertFalse(sampledElements.isEmpty());
     }
 
-    private Stream<Map.Entry<Long, ?>> sampledElements(LocalTest.Evidence e) {
-        GridLinearCode.SimpleLocalTest<?, ?>.Evidence e2 = (GridLinearCode.SimpleLocalTest<?, ?>.Evidence) e;
+    private Stream<Map.Entry<Long, ?>> sampledElements(SimpleGridEvidence<?> e) {
 
-        Stream<Map.Entry<Long, ?>> columnElements = Streams.mapWithIndex(e2.column.stream(), (elt, y) ->
-                Collections.singletonMap(e2.x + y * 128L, elt).entrySet().iterator().next());
-        Stream<Map.Entry<Long, ?>> rowElements = Streams.mapWithIndex(e2.row.stream(), (elt, x) ->
-                Collections.singletonMap(x + e2.y * 128L, elt).entrySet().iterator().next());
+        Stream<Map.Entry<Long, ?>> columnElements = Streams.mapWithIndex(e.column.stream(), (elt, y) ->
+                Collections.singletonMap(e.x + y * 128L, elt).entrySet().iterator().next());
+        Stream<Map.Entry<Long, ?>> rowElements = Streams.mapWithIndex(e.row.stream(), (elt, x) ->
+                Collections.singletonMap(x + e.y * 128L, elt).entrySet().iterator().next());
 
         return Stream.concat(columnElements, rowElements);
     }

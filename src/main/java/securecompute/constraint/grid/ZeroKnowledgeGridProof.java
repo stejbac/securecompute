@@ -5,10 +5,10 @@ import securecompute.algebra.FiniteField;
 import securecompute.algebra.module.FiniteVectorSpace;
 import securecompute.algebra.module.block.BlockFiniteVectorSpace;
 import securecompute.constraint.LinearCode;
-import securecompute.constraint.LocallyTestableCode;
 import securecompute.constraint.ZeroKnowledgeLocallyTestableProof;
 import securecompute.constraint.block.BlockConstraint;
 import securecompute.constraint.block.BlockLinearCode;
+import securecompute.constraint.grid.GridLinearCode.SimpleGridEvidence;
 
 import java.util.*;
 import java.util.function.Function;
@@ -54,10 +54,10 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
         if (!topLayerCode.rowConstraint().isSystematic() || !topLayerCode.columnConstraint().isSystematic()) {
             throw new IllegalArgumentException("Inner row & column codes must be systematic");
         }
-        if (outerGridCode.rowConstraint().distance() <= witnessWidth) {
+        if (topLayerOuterCode.rowConstraint().distance() <= witnessWidth) {
             throw new IllegalArgumentException("Outer row code must have greater distance than the witness width");
         }
-        if (outerGridCode.columnConstraint().distance() <= witnessHeight) {
+        if (topLayerOuterCode.columnConstraint().distance() <= witnessHeight) {
             throw new IllegalArgumentException("Outer column code must have greater distance than the witness height");
         }
     }
@@ -152,26 +152,31 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
     }
 
     @Override
-    public ZeroKnowledgeLocalTest<List<V>> localTest() {
+    public SimpleLocalTest localTest() {
         return new SimpleLocalTest();
     }
 
     @Override
-    public ZeroKnowledgeLocalTest<List<V>> localTest(double maxFalseNegativeProbability) {
+    public RepeatedLocalTest localTest(double maxFalseNegativeProbability) {
         int maxAllowedRepetitions = Math.min(maxIndependentRowCount, maxIndependentColumnCount);
         return new RepeatedLocalTest(maxFalseNegativeProbability, maxAllowedRepetitions);
     }
 
-    // TODO: Avoid qualifiers to disambiguate 'Evidence' identifier here (somehow):
-    public class SimpleLocalTest extends GridLinearCode.SimpleLocalTest<List<V>, E> implements ZeroKnowledgeLocalTest<List<V>> {
+    @Override
+    public RepeatedLocalTest localTestOfMaximalPower() {
+        return localTest(minimumAllowedFalseNegativeProbability());
+    }
+
+    public class SimpleLocalTest extends GridProof<V, E>.SimpleLocalTest
+            implements ZeroKnowledgeLocalTest<List<V>, SimpleGridEvidence<List<V>>> {
 
         SimpleLocalTest() {
-            super(outerGridCode, witnessWidth, witnessHeight);
+            super(witnessWidth, witnessHeight);
         }
 
         @Override
-        protected GridLinearCode.SimpleLocalTest<List<V>, E>.Evidence evidence(int x, int y, List<List<V>> column, List<List<V>> row) {
-            return new GridLinearCode.SimpleLocalTest<List<V>, E>.Evidence(x, y, column, row) {
+        protected SimpleGridEvidence<List<V>> evidence(int x, int y, List<List<V>> column, List<List<V>> row) {
+            return new SimpleGridEvidence<List<V>>(x, y, column, row) {
                 @Override
                 public boolean isFailure() {
                     return !ZeroKnowledgeGridProof.this.rowConstraint().isValid(row) ||
@@ -181,7 +186,7 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
         }
 
         @Override
-        public GridLinearCode.SimpleLocalTest<List<V>, E>.Evidence query(List<List<V>> vector, Random random) {
+        public SimpleGridEvidence<List<V>> query(List<List<V>> vector, Random random) {
             // The excluded rows & columns (those that pass through the witness) are at the bottom & right of the grid.
             return query(vector,
                     random.nextInt(width - witnessWidth),
@@ -189,14 +194,12 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
         }
 
         @Override
-        @SuppressWarnings("unchecked")
-        public GridLinearCode.SimpleLocalTest<List<V>, E>.Evidence simulate(Random random) {
-            return (GridLinearCode.SimpleLocalTest<List<V>, E>.Evidence)
-                    new RepeatedLocalTest().simulate(random).evidenceList().get(1);
+        public SimpleGridEvidence<List<V>> simulate(Random random) {
+            return new RepeatedLocalTest().simulate(random).evidenceList().get(1);
         }
     }
 
-    public class RepeatedLocalTest extends ZeroKnowledgeRepeatedLocalTest<List<V>> {
+    public class RepeatedLocalTest extends ZeroKnowledgeRepeatedLocalTest<List<V>, SimpleGridEvidence<List<V>>> {
 
         RepeatedLocalTest() {
             super(localTest(), 1);
@@ -207,29 +210,29 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
         }
 
         @Override
-        public LocallyTestableCode.RepeatedLocalTest.Evidence simulate(Random random) {
+        @SuppressWarnings("unchecked")
+        public SimpleLocalTest singleTest() {
+            return (SimpleLocalTest) super.singleTest();
+        }
+
+        @Override
+        public RepeatedEvidence<SimpleGridEvidence<List<V>>> simulate(Random random) {
+
             List<List<V>> fullyErasedTestVector = Collections.nCopies(length(), null);
-            LocallyTestableCode.RepeatedLocalTest.Evidence evidence = query(fullyErasedTestVector, random);
+            RepeatedEvidence<SimpleGridEvidence<List<V>>> evidence = query(fullyErasedTestVector, random);
 
             SortedMap<Integer, List<List<V>>> sampledRows = new TreeMap<>();
             SortedMap<Integer, List<List<V>>> sampledColumns = new TreeMap<>();
 
             evidence.evidenceList().forEach(e -> {
-                GridLinearCode.SimpleLocalTest<?, ?>.Evidence e2 = (GridLinearCode.SimpleLocalTest<?, ?>.Evidence) e;
-                sampledRows.put(e2.y, null);
-                sampledColumns.put(e2.x, null);
+                sampledRows.put(e.y, null);
+                sampledColumns.put(e.x, null);
             });
 
             fillInFakeRowAndColumnSamples(sampledRows, sampledColumns);
 
-            @SuppressWarnings("unchecked")
-            GridLinearCode.SimpleLocalTest<List<V>, E> singleTest = (GridLinearCode.SimpleLocalTest<List<V>, E>) singleTest();
-
-            return new LocallyTestableCode.RepeatedLocalTest.Evidence(evidence.evidenceList().stream()
-                    .map(e -> {
-                        GridLinearCode.SimpleLocalTest<?, ?>.Evidence e2 = (GridLinearCode.SimpleLocalTest<?, ?>.Evidence) e;
-                        return singleTest.evidence(e2.x, e2.y, sampledColumns.get(e2.x), sampledRows.get(e2.y));
-                    })
+            return new RepeatedEvidence<>(evidence.evidenceList().stream()
+                    .map(e -> singleTest().evidence(e.x, e.y, sampledColumns.get(e.x), sampledRows.get(e.y)))
                     .collect(ImmutableList.toImmutableList()));
         }
     }

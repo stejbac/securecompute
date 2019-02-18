@@ -102,7 +102,7 @@ class GridLinearCodeTest {
         Assumptions.assumeTrue(GRID_CODE.localTest().falseNegativeProbability() > 0.5);
         Assumptions.assumeTrue(GRID_CODE.localTest().falseNegativeProbability() < 0.707);
 
-        RepeatedLocalTest<Boolean> compoundTest = (RepeatedLocalTest<Boolean>) GRID_CODE.localTest(0x1.0p-256);
+        RepeatedLocalTest<Boolean, ?> compoundTest = GRID_CODE.localTest(0x1.0p-256);
 
         assertTrue(compoundTest.singleTest().falseNegativeProbability() < 0.707);
         assertTrue(compoundTest.repetitionCount() > 256);

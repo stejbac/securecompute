@@ -11,15 +11,13 @@ public interface LocallyTestableCode<V> extends Code<V> {
     /**
      * @return a simple local test of maximal distance and power (i.e. minimal false negative probability)
      */
-    LocalTest<V> localTest();
+    LocalTest<V, ?> localTest();
 
     /**
      * @param maxFalseNegativeProbability the maximum allowed false negative probability
      * @return a compound local test of maximal distance within the provided false negative probability bound
      */
-    default LocalTest<V> localTest(double maxFalseNegativeProbability) {
-        return new RepeatedLocalTest<>(localTest(), maxFalseNegativeProbability);
-    }
+    LocalTest<V, ?> localTest(double maxFalseNegativeProbability);
 
     /**
      * A local test of fixed distance and false negative probability. Local tests are probabilistic tests of closeness
@@ -34,14 +32,15 @@ public interface LocallyTestableCode<V> extends Code<V> {
      * than or equal to <tt>d</tt> from <tt>v</tt>.
      *
      * @param <V> the code alphabet (symbol type)
+     * @param <S> the local test evidence type
      */
-    interface LocalTest<V> {
+    interface LocalTest<V, S extends LocalTest.Evidence> {
 
         int distance();
 
         double falseNegativeProbability();
 
-        Evidence query(List<V> vector, Random random);
+        S query(List<V> vector, Random random);
 
         interface Evidence {
 
@@ -49,27 +48,27 @@ public interface LocallyTestableCode<V> extends Code<V> {
         }
     }
 
-    class RepeatedLocalTest<V> implements LocalTest<V> {
+    class RepeatedLocalTest<V, S extends LocalTest.Evidence> implements LocalTest<V, RepeatedLocalTest.RepeatedEvidence<S>> {
 
-        private final LocalTest<V> singleTest;
+        private final LocalTest<V, S> singleTest;
         private final int repetitionCount;
 
-        RepeatedLocalTest(LocalTest<V> singleTest, double maxFalseNegativeProbability) {
+        public RepeatedLocalTest(LocalTest<V, S> singleTest, double maxFalseNegativeProbability) {
             this(singleTest, repetitionsRequiredForDesiredPower(singleTest, maxFalseNegativeProbability));
         }
 
-        RepeatedLocalTest(LocalTest<V> singleTest, int repetitionCount) {
+        RepeatedLocalTest(LocalTest<V, S> singleTest, int repetitionCount) {
             this.singleTest = singleTest;
             this.repetitionCount = repetitionCount;
         }
 
-        static int repetitionsRequiredForDesiredPower(LocalTest<?> singleTest, double maxFalseNegativeProbability) {
+        static int repetitionsRequiredForDesiredPower(LocalTest<?, ?> singleTest, double maxFalseNegativeProbability) {
             // TODO: Make sure rounding is handled correctly here:
             return (int) Math.ceil(
                     Math.log(maxFalseNegativeProbability) / Math.log(singleTest.falseNegativeProbability()));
         }
 
-        public LocalTest<V> singleTest() {
+        public LocalTest<V, S> singleTest() {
             return singleTest;
         }
 
@@ -89,29 +88,29 @@ public interface LocallyTestableCode<V> extends Code<V> {
         }
 
         @Override
-        public Evidence query(List<V> vector, Random random) {
-            List<LocalTest.Evidence> evidenceList = IntStream.range(0, repetitionCount)
+        public RepeatedEvidence<S> query(List<V> vector, Random random) {
+            List<S> evidenceList = IntStream.range(0, repetitionCount)
                     .mapToObj(i -> singleTest.query(vector, random))
                     .collect(ImmutableList.toImmutableList());
 
-            return new Evidence(evidenceList);
+            return new RepeatedEvidence<>(evidenceList);
         }
 
-        public static class Evidence implements LocalTest.Evidence {
+        public static class RepeatedEvidence<S extends LocalTest.Evidence> implements LocalTest.Evidence {
 
-            private final List<LocalTest.Evidence> evidenceList;
+            private final List<S> evidenceList;
 
-            public Evidence(List<LocalTest.Evidence> evidenceList) {
+            public RepeatedEvidence(List<S> evidenceList) {
                 this.evidenceList = ImmutableList.copyOf(evidenceList);
             }
 
-            public List<LocalTest.Evidence> evidenceList() {
+            public List<S> evidenceList() {
                 return evidenceList;
             }
 
             @Override
             public boolean isFailure() {
-                return evidenceList.stream().anyMatch(LocalTest.Evidence::isFailure);
+                return evidenceList.stream().anyMatch(Evidence::isFailure);
             }
         }
     }

@@ -9,35 +9,33 @@ public interface ZeroKnowledgeLocallyTestableProof<V> extends LocallyTestablePro
     double minimumAllowedFalseNegativeProbability();
 
     @Override
-    ZeroKnowledgeLocalTest<V> localTest();
+    ZeroKnowledgeLocalTest<V, ?> localTest();
 
     @Override
-    ZeroKnowledgeLocalTest<V> localTest(double maxFalseNegativeProbability);
+    ZeroKnowledgeLocalTest<V, ?> localTest(double maxFalseNegativeProbability);
 
-    default ZeroKnowledgeLocalTest<V> localTestOfMaximalPower() {
-        return localTest(minimumAllowedFalseNegativeProbability());
+    ZeroKnowledgeLocalTest<V, ?> localTestOfMaximalPower();
+
+    interface ZeroKnowledgeLocalTest<V, S extends LocalTest.Evidence> extends LocalTest<V, S> {
+
+        S simulate(Random random);
     }
 
-    // TODO: Consider adding an evidence type parameter to LocalTest, to ensure the same return types for 'simulate' & 'query'.
-    interface ZeroKnowledgeLocalTest<V> extends LocalTest<V> {
+    abstract class ZeroKnowledgeRepeatedLocalTest<V, S extends LocalTest.Evidence> extends RepeatedLocalTest<V, S>
+            implements ZeroKnowledgeLocalTest<V, RepeatedLocalTest.RepeatedEvidence<S>> {
 
-        Evidence simulate(Random random);
-    }
-
-    abstract class ZeroKnowledgeRepeatedLocalTest<V> extends RepeatedLocalTest<V> implements ZeroKnowledgeLocalTest<V> {
-
-        protected ZeroKnowledgeRepeatedLocalTest(LocalTest<V> singleTest, int repetitionCount) {
+        protected ZeroKnowledgeRepeatedLocalTest(LocalTest<V, S> singleTest, int repetitionCount) {
             super(singleTest, repetitionCount);
         }
 
-        protected ZeroKnowledgeRepeatedLocalTest(LocalTest<V> singleTest, double maxFalseNegativeProbability, int maxAllowedRepetitions) {
+        protected ZeroKnowledgeRepeatedLocalTest(LocalTest<V, S> singleTest, double maxFalseNegativeProbability, int maxAllowedRepetitions) {
             super(singleTest, maxFalseNegativeProbability);
             if (repetitionCount() > maxAllowedRepetitions) {
                 throw new IllegalArgumentException("Test repetition count exceeds maximum guaranteeing zero knowledge");
             }
         }
 
-        public static double minimumAllowedFalseNegativeProbability(LocalTest<?> singleTest, int maxAllowedRepetitions) {
+        public static double minimumAllowedFalseNegativeProbability(LocalTest<?, ?> singleTest, int maxAllowedRepetitions) {
             double prob = Math.pow(singleTest.falseNegativeProbability(), maxAllowedRepetitions);
             // Handle rounding errors - must round probability up for safety:
             while (repetitionsRequiredForDesiredPower(singleTest, prob) > maxAllowedRepetitions) {
@@ -47,6 +45,6 @@ public interface ZeroKnowledgeLocallyTestableProof<V> extends LocallyTestablePro
         }
 
         @Override
-        public abstract RepeatedLocalTest.Evidence simulate(Random random);
+        public abstract RepeatedEvidence<S> simulate(Random random);
     }
 }

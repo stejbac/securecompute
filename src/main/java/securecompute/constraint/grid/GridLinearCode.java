@@ -30,11 +30,16 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
     }
 
     @Override
-    public LocalTest<V> localTest() {
+    public SimpleLocalTest<V, E> localTest() {
         return new SimpleLocalTest<>(this);
     }
 
-    public static class SimpleLocalTest<V, E> implements LocalTest<V> {
+    @Override
+    public RepeatedLocalTest<V, SimpleGridEvidence<V>> localTest(double maxFalseNegativeProbability) {
+        return new RepeatedLocalTest<>(localTest(), maxFalseNegativeProbability);
+    }
+
+    public static class SimpleLocalTest<V, E> implements LocallyTestableCode.LocalTest<V, SimpleGridEvidence<V>> {
 
         private final GridLinearCode<V, E> code;
         private final int distance;
@@ -77,13 +82,13 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
         }
 
         @Override
-        public Evidence query(List<V> vector, Random random) {
+        public SimpleGridEvidence<V> query(List<V> vector, Random random) {
             return query(vector,
                     random.nextInt(code.rowConstraint().length()),
                     random.nextInt(code.columnConstraint().length()));
         }
 
-        final Evidence query(List<V> vector, int x, int y) {
+        final SimpleGridEvidence<V> query(List<V> vector, int x, int y) {
             List<List<V>> rows = Lists.partition(vector, code.rowConstraint().length());
 
             List<V> row = rows.get(y);
@@ -94,37 +99,37 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
             return evidence(x, y, column, row);
         }
 
-        protected Evidence evidence(int x, int y, List<V> column, List<V> row) {
-            return new Evidence(x, y, column, row);
+        protected SimpleGridEvidence<V> evidence(int x, int y, List<V> column, List<V> row) {
+            return new SimpleGridEvidence<V>(x, y, column, row) {
+                @Override
+                public boolean isFailure() {
+                    return !code.rowConstraint().isValid(row) || !code.columnConstraint().isValid(column);
+                }
+            };
+        }
+    }
+
+    public static abstract class SimpleGridEvidence<V> implements LocalTest.Evidence {
+
+        // TODO: Make private:
+        final int x, y;
+        final List<V> column, row;
+
+        SimpleGridEvidence(int x, int y, List<V> column, List<V> row) {
+            this.x = x;
+            this.y = y;
+            this.column = column;
+            this.row = row;
         }
 
-        public class Evidence implements LocalTest.Evidence {
-
-            // TODO: Make private:
-            final int x, y;
-            final List<V> column, row;
-
-            Evidence(int x, int y, List<V> column, List<V> row) {
-                this.x = x;
-                this.y = y;
-                this.column = column;
-                this.row = row;
-            }
-
-            @Override
-            public boolean isFailure() {
-                return !code.rowConstraint().isValid(row) || !code.columnConstraint().isValid(column);
-            }
-
-            @Override
-            public String toString() {
-                return MoreObjects.toStringHelper(this)
-                        .add("x", x)
-                        .add("y", y)
-                        .add("column", column)
-                        .add("row", row)
-                        .toString();
-            }
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(this)
+                    .add("x", x)
+                    .add("y", y)
+                    .add("column", column)
+                    .add("row", row)
+                    .toString();
         }
     }
 }

@@ -9,6 +9,7 @@ import securecompute.constraint.LocallyTestableProof;
 import securecompute.constraint.MultiplicativeLinearCode;
 import securecompute.constraint.block.BlockConstraint;
 import securecompute.constraint.block.BlockLinearCode;
+import securecompute.constraint.grid.GridLinearCode.SimpleGridEvidence;
 
 import java.util.Collections;
 import java.util.List;
@@ -16,9 +17,9 @@ import java.util.stream.Collectors;
 
 public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyTestableProof<List<V>> {
 
-    final GridLinearCode<V, E> topLayerCode, topLayerOuterCode; // TODO: Consider making these private & adding package-private getter.
+    final GridLinearCode<V, E> topLayerCode, topLayerOuterCode; // TODO: Consider making these private & adding package-private getters.
     private final GridLinearCode<List<V>, E> innerGridCode;
-    final GridLinearCode<List<V>, E> outerGridCode; // TODO: Consider making this private & adding package-private getter.
+    private final GridLinearCode<List<V>, E> outerGridCode;
     private final TripleLayerConstraint<V, E> messageConstraint;
 
     private GridProof(GridLinearCode<V, E> topLayerCode, TripleLayerConstraint<V, E> messageConstraint,
@@ -119,20 +120,13 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
     }
 
     @Override
-    public LocalTest<List<V>> localTest() {
-        // TODO: Consider naming these anonymous inner classes:
-        return new GridLinearCode.SimpleLocalTest<List<V>, E>(outerGridCode) {
-            @Override
-            protected Evidence evidence(int x, int y, List<List<V>> column, List<List<V>> row) {
-                return new Evidence(x, y, column, row) {
-                    @Override
-                    public boolean isFailure() {
-                        return !GridProof.this.rowConstraint().isValid(row) ||
-                                !GridProof.this.columnConstraint().isValid(column);
-                    }
-                };
-            }
-        };
+    public SimpleLocalTest localTest() {
+        return new SimpleLocalTest();
+    }
+
+    @Override
+    public RepeatedLocalTest<List<V>, SimpleGridEvidence<List<V>>> localTest(double maxFalseNegativeProbability) {
+        return new RepeatedLocalTest<>(localTest(), maxFalseNegativeProbability);
     }
 
     private static class LineConstraint<V, E> implements Constraint<List<V>> {
@@ -171,6 +165,28 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
                     topLayerCode.isValid(layers.get(parityLayerIndex)) &&
                     topLayerOuterCode.isValid(layers.get(3 - parityLayerIndex)) &&
                     messageConstraint.isValid(innerCode.decode(vector));
+        }
+    }
+
+    public class SimpleLocalTest extends GridLinearCode.SimpleLocalTest<List<V>, E> {
+
+        SimpleLocalTest() {
+            super(outerGridCode);
+        }
+
+        SimpleLocalTest(int excludedRowCount, int excludedColumnCount) {
+            super(outerGridCode, excludedRowCount, excludedColumnCount);
+        }
+
+        @Override
+        protected SimpleGridEvidence<List<V>> evidence(int x, int y, List<List<V>> column, List<List<V>> row) {
+            return new SimpleGridEvidence<List<V>>(x, y, column, row) {
+                @Override
+                public boolean isFailure() {
+                    return !GridProof.this.rowConstraint().isValid(row) ||
+                            !GridProof.this.columnConstraint().isValid(column);
+                }
+            };
         }
     }
 }
