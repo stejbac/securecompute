@@ -226,7 +226,7 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
             return new LocallyTestableCode.RepeatedLocalTest.Evidence(evidence.evidenceList().stream()
                     .map(e -> {
                         GridLinearCode.SimpleLocalTest<?, ?>.Evidence e2 = (GridLinearCode.SimpleLocalTest<?, ?>.Evidence) e;
-                        return singleTest.new Evidence(e2.x, e2.y, sampledColumns.get(e2.x), sampledRows.get(e2.y));
+                        return singleTest.evidence(e2.x, e2.y, sampledColumns.get(e2.x), sampledRows.get(e2.y));
                     })
                     .collect(ImmutableList.toImmutableList()));
         }
@@ -254,8 +254,8 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
         Function<List<V>, List<V>> colTopLayerFn, colMiddleLayerFn, colBottomLayerFn, colParityFn;
         colTopLayerFn = randomInterpolationFn(topLayerCode.columnConstraint(), ImmutableSortedSet.copyOf(rows.keySet()));
         SortedSet<Integer> yIndices = ImmutableSortedSet.copyOf(Sets.union(rows.keySet(), ContiguousSet.closedOpen(height - witnessHeight, height)));
-        colMiddleLayerFn = randomInterpolationFn(topLayerCode.columnConstraint(), yIndices);
-        colBottomLayerFn = randomInterpolationFn(topLayerOuterCode.columnConstraint(), yIndices);
+        colMiddleLayerFn = randomInterpolationFn(topLayerOuterCode.columnConstraint(), yIndices);
+        colBottomLayerFn = randomInterpolationFn(topLayerCode.columnConstraint(), yIndices);
         colParityFn = witnessConstraint.columnConstraint()::zeroExtendedParity;
 
         for (int x : columns.keySet()) {

@@ -104,6 +104,7 @@ class ZeroKnowledgeGridProofTest {
             GridLinearCode.SimpleLocalTest<?, ?>.Evidence e2 = (GridLinearCode.SimpleLocalTest<?, ?>.Evidence) e;
             GridLinearCode.SimpleLocalTest<?, ?>.Evidence f2 = (GridLinearCode.SimpleLocalTest<?, ?>.Evidence) f;
 
+            assertEquals(e2.getClass(), f2.getClass());
             assertEquals(e2.x, f2.x);
             assertEquals(e2.y, f2.y);
         }));
