@@ -56,11 +56,11 @@ class ZeroKnowledgeGridProofTest {
 
     @Test
     void localTestsHaveExpectedProperties() {
-        double minErrorRate = GRID_PROOF.minimumAllowedFalseNegativeProbability();
+        double minErrorRate = GRID_PROOF.minimumAllowedFalsePositiveProbability();
         System.out.println(minErrorRate);
 
-        assertEquals(minErrorRate, GRID_PROOF.localTestOfMaximalPower().falseNegativeProbability(), 1e-15);
-        assertEquals(48, GRID_PROOF.localTestOfMaximalPower().repetitionCount());
+        assertEquals(minErrorRate, GRID_PROOF.localTestOfMaximalConfidence().falsePositiveProbability(), 1e-15);
+        assertEquals(48, GRID_PROOF.localTestOfMaximalConfidence().repetitionCount());
     }
 
     @Test
@@ -80,20 +80,20 @@ class ZeroKnowledgeGridProofTest {
     }
 
     @Test
-    void encodedValidWitnessPassesMaxPowerTest() {
-        ZeroKnowledgeLocalTest<List<Gf256.Element>, ?> maxPowerTest = GRID_PROOF.localTestOfMaximalPower();
+    void encodedValidWitnessPassesMaxConfidenceTest() {
+        ZeroKnowledgeLocalTest<List<Gf256.Element>, ?> maxConfidenceTest = GRID_PROOF.localTestOfMaximalConfidence();
 
-        LocalTest.Evidence evidence = maxPowerTest.query(ENCODED_VALID_WITNESS, new Random(2468));
-        assertFalse(evidence.isFailure());
+        LocalTest.Evidence evidence = maxConfidenceTest.query(ENCODED_VALID_WITNESS, new Random(2468));
+        assertTrue(evidence.isValid());
     }
 
     @Test
     void simulatedEvidenceHasExpectedProperties() {
         GRID_PROOF.getRandom().setSeed(3579);
-        ZeroKnowledgeGridProof<Gf256.Element, ?>.RepeatedLocalTest maxPowerTest = GRID_PROOF.localTestOfMaximalPower();
+        ZeroKnowledgeGridProof<Gf256.Element, ?>.RepeatedLocalTest maxConfidenceTest = GRID_PROOF.localTestOfMaximalConfidence();
 
-        RepeatedEvidence<? extends SimpleGridEvidence<?>> realEvidence = maxPowerTest.query(ENCODED_VALID_WITNESS, new Random(2468));
-        RepeatedEvidence<? extends SimpleGridEvidence<?>> simulatedEvidence = maxPowerTest.simulate(new Random(2468));
+        RepeatedEvidence<? extends SimpleGridEvidence<?>> realEvidence = maxConfidenceTest.query(ENCODED_VALID_WITNESS, new Random(2468));
+        RepeatedEvidence<? extends SimpleGridEvidence<?>> simulatedEvidence = maxConfidenceTest.simulate(new Random(2468));
 
         List<? extends SimpleGridEvidence<?>> realEvidenceList = realEvidence.evidenceList();
         List<? extends SimpleGridEvidence<?>> simulatedEvidenceList = simulatedEvidence.evidenceList();
@@ -107,7 +107,7 @@ class ZeroKnowledgeGridProofTest {
         }));
 
         // Simulated evidence is valid.
-        assertFalse(simulatedEvidence.isFailure());
+        assertTrue(simulatedEvidence.isValid());
 
         // Simulated evidence is consistent (i.e. the rows & columns agree where they overlap or repeat).
         Map<Long, ?> sampledElements = simulatedEvidenceList.stream()

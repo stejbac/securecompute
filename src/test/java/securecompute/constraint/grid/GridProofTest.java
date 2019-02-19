@@ -3,11 +3,11 @@ package securecompute.constraint.grid;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Test;
+import securecompute.algebra.Gf256;
+import securecompute.algebra.module.FiniteVectorSpace;
+import securecompute.algebra.module.singleton.SingletonVectorSpace;
 import securecompute.constraint.AlgebraicConstraint;
 import securecompute.constraint.LocallyTestableCode;
-import securecompute.algebra.module.FiniteVectorSpace;
-import securecompute.algebra.Gf256;
-import securecompute.algebra.module.singleton.SingletonVectorSpace;
 import securecompute.constraint.cyclic.ReedSolomonCode;
 
 import java.util.Collections;
@@ -105,7 +105,7 @@ class GridProofTest {
     void gridProofHasCorrectLocalTestProperties() {
 //        assertEquals(171 * 151, GRID_PROOF.asLinearCode().distance());
         assertEquals(170 * 101, GRID_PROOF.localTest().distance());
-        assertEquals(98.0 / 200, GRID_PROOF.localTest().falseNegativeProbability());
+        assertEquals(98.0 / 200, GRID_PROOF.localTest().falsePositiveProbability());
     }
 
     @Test
@@ -131,6 +131,6 @@ class GridProofTest {
         LocallyTestableCode.LocalTest.Evidence evidence = GRID_PROOF.localTest(0x1.0p-256)
                 .query(ENCODED_VALID_MESSAGE, new Random(4567));
 
-        assertFalse(evidence.isFailure());
+        assertTrue(evidence.isValid());
     }
 }

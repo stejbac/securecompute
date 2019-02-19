@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import securecompute.algebra.BooleanField;
 import securecompute.algebra.polynomial.FieldPolynomialRing;
 import securecompute.algebra.polynomial.Polynomial;
+import securecompute.constraint.LocallyTestableCode.LocalTest.Evidence;
 import securecompute.constraint.LocallyTestableCode.RepeatedLocalTest;
 import securecompute.constraint.cyclic.PuncturedPolynomialCode;
 
@@ -17,8 +18,7 @@ import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class GridLinearCodeTest {
 
@@ -85,33 +85,33 @@ class GridLinearCodeTest {
     }
 
     @Test
-    void localTestHasCorrectFalseNegativeRate() {
+    void localTestHasCorrectFalsePositiveRate() {
         Random rnd = new Random(12345);
 
         long passCount = Stream.generate(() -> GRID_CODE.localTest().query(MINIMAL_BAD_VECTOR_OF_ERRORS, rnd))
                 .limit(5000)
-                .filter(evidence -> !evidence.isFailure())
+                .filter(Evidence::isValid)
                 .count();
         double passRate = passCount / 5000.0;
 
-        assertEquals(passRate, GRID_CODE.localTest().falseNegativeProbability(), 0.01);
+        assertEquals(passRate, GRID_CODE.localTest().falsePositiveProbability(), 0.01);
     }
 
     @Test
     void compoundLocalTestCanHaveCryptographicStrength() {
-        Assumptions.assumeTrue(GRID_CODE.localTest().falseNegativeProbability() > 0.5);
-        Assumptions.assumeTrue(GRID_CODE.localTest().falseNegativeProbability() < 0.707);
+        Assumptions.assumeTrue(GRID_CODE.localTest().falsePositiveProbability() > 0.5);
+        Assumptions.assumeTrue(GRID_CODE.localTest().falsePositiveProbability() < 0.707);
 
         RepeatedLocalTest<Boolean, ?> compoundTest = GRID_CODE.localTest(0x1.0p-256);
 
-        assertTrue(compoundTest.singleTest().falseNegativeProbability() < 0.707);
+        assertTrue(compoundTest.singleTest().falsePositiveProbability() < 0.707);
         assertTrue(compoundTest.repetitionCount() > 256);
         assertTrue(compoundTest.repetitionCount() < 512);
-        assertTrue(compoundTest.falseNegativeProbability() <= 0x1.0p-256);
+        assertTrue(compoundTest.falsePositiveProbability() <= 0x1.0p-256);
 
         Random rnd = new Random(23456);
         assertEquals(compoundTest.repetitionCount(), compoundTest.query(MINIMAL_BAD_VECTOR_OF_ERASURES, rnd).evidenceList().size());
-        assertTrue(compoundTest.query(MINIMAL_BAD_VECTOR_OF_ERASURES, rnd).isFailure());
-        assertTrue(compoundTest.query(MINIMAL_BAD_VECTOR_OF_ERRORS, rnd).isFailure());
+        assertFalse(compoundTest.query(MINIMAL_BAD_VECTOR_OF_ERASURES, rnd).isValid());
+        assertFalse(compoundTest.query(MINIMAL_BAD_VECTOR_OF_ERRORS, rnd).isValid());
     }
 }

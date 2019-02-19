@@ -125,8 +125,8 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
     }
 
     @Override
-    public RepeatedLocalTest<List<V>, SimpleGridEvidence<List<V>>> localTest(double maxFalseNegativeProbability) {
-        return new RepeatedLocalTest<>(localTest(), maxFalseNegativeProbability);
+    public RepeatedLocalTest<List<V>, SimpleGridEvidence<List<V>>> localTest(double maxFalsePositiveProbability) {
+        return new RepeatedLocalTest<>(localTest(), maxFalsePositiveProbability);
     }
 
     private static class LineConstraint<V, E> implements Constraint<List<V>> {
@@ -182,9 +182,9 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
         protected SimpleGridEvidence<List<V>> evidence(int x, int y, List<List<V>> column, List<List<V>> row) {
             return new SimpleGridEvidence<List<V>>(x, y, column, row) {
                 @Override
-                public boolean isFailure() {
-                    return !GridProof.this.rowConstraint().isValid(row) ||
-                            !GridProof.this.columnConstraint().isValid(column);
+                public boolean isValid() {
+                    return GridProof.this.rowConstraint().isValid(row) &&
+                            GridProof.this.columnConstraint().isValid(column);
                 }
             };
         }

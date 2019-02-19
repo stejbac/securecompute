@@ -6,15 +6,15 @@ public interface ZeroKnowledgeLocallyTestableProof<V> extends LocallyTestablePro
 
     Random getRandom();
 
-    double minimumAllowedFalseNegativeProbability();
+    double minimumAllowedFalsePositiveProbability();
 
     @Override
     ZeroKnowledgeLocalTest<V, ?> localTest();
 
     @Override
-    ZeroKnowledgeLocalTest<V, ?> localTest(double maxFalseNegativeProbability);
+    ZeroKnowledgeLocalTest<V, ?> localTest(double maxFalsePositiveProbability);
 
-    ZeroKnowledgeLocalTest<V, ?> localTestOfMaximalPower();
+    ZeroKnowledgeLocalTest<V, ?> localTestOfMaximalConfidence();
 
     interface ZeroKnowledgeLocalTest<V, S extends LocalTest.Evidence> extends LocalTest<V, S> {
 
@@ -28,17 +28,17 @@ public interface ZeroKnowledgeLocallyTestableProof<V> extends LocallyTestablePro
             super(singleTest, repetitionCount);
         }
 
-        protected ZeroKnowledgeRepeatedLocalTest(LocalTest<V, S> singleTest, double maxFalseNegativeProbability, int maxAllowedRepetitions) {
-            super(singleTest, maxFalseNegativeProbability);
+        protected ZeroKnowledgeRepeatedLocalTest(LocalTest<V, S> singleTest, double maxFalsePositiveProbability, int maxAllowedRepetitions) {
+            super(singleTest, maxFalsePositiveProbability);
             if (repetitionCount() > maxAllowedRepetitions) {
                 throw new IllegalArgumentException("Test repetition count exceeds maximum guaranteeing zero knowledge");
             }
         }
 
-        public static double minimumAllowedFalseNegativeProbability(LocalTest<?, ?> singleTest, int maxAllowedRepetitions) {
-            double prob = Math.pow(singleTest.falseNegativeProbability(), maxAllowedRepetitions);
+        public static double minimumAllowedFalsePositiveProbability(LocalTest<?, ?> singleTest, int maxAllowedRepetitions) {
+            double prob = Math.pow(singleTest.falsePositiveProbability(), maxAllowedRepetitions);
             // Handle rounding errors - must round probability up for safety:
-            while (repetitionsRequiredForDesiredPower(singleTest, prob) > maxAllowedRepetitions) {
+            while (repetitionsRequiredForDesiredConfidence(singleTest, prob) > maxAllowedRepetitions) {
                 prob = Math.nextUp(prob);
             }
             return prob;

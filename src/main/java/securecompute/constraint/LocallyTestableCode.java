@@ -9,22 +9,22 @@ import java.util.stream.IntStream;
 public interface LocallyTestableCode<V> extends Code<V> {
 
     /**
-     * @return a simple local test of maximal distance and power (i.e. minimal false negative probability)
+     * @return a simple local test of maximal distance and confidence (i.e. minimal false positive probability)
      */
     LocalTest<V, ?> localTest();
 
     /**
-     * @param maxFalseNegativeProbability the maximum allowed false negative probability
-     * @return a compound local test of maximal distance within the provided false negative probability bound
+     * @param maxFalsePositiveProbability the maximum allowed false positive probability
+     * @return a compound local test of maximal distance within the provided false positive probability bound
      */
-    LocalTest<V, ?> localTest(double maxFalseNegativeProbability);
+    LocalTest<V, ?> localTest(double maxFalsePositiveProbability);
 
     /**
-     * A local test of fixed distance and false negative probability. Local tests are probabilistic tests of closeness
+     * A local test of fixed distance and false positive probability. Local tests are probabilistic tests of closeness
      * of a given vector to some codeword. They only sample a small subset of the provided test vector, where each
      * sample is of ad hoc form implementing {@link Evidence}.
      * <p>
-     * We say that a local test has distance <tt>d</tt> and false negative probability <tt>p</tt> if the following
+     * We say that a local test has distance <tt>d</tt> and false positive probability <tt>p</tt> if the following
      * holds:
      * <p>
      * For an arbitrary test vector <tt>v</tt>, possibly containing nulls (taken to be erasures), such that the test
@@ -38,13 +38,13 @@ public interface LocallyTestableCode<V> extends Code<V> {
 
         int distance();
 
-        double falseNegativeProbability();
+        double falsePositiveProbability();
 
         S query(List<V> vector, Random random);
 
         interface Evidence {
 
-            boolean isFailure();
+            boolean isValid();
         }
     }
 
@@ -53,8 +53,8 @@ public interface LocallyTestableCode<V> extends Code<V> {
         private final LocalTest<V, S> singleTest;
         private final int repetitionCount;
 
-        public RepeatedLocalTest(LocalTest<V, S> singleTest, double maxFalseNegativeProbability) {
-            this(singleTest, repetitionsRequiredForDesiredPower(singleTest, maxFalseNegativeProbability));
+        public RepeatedLocalTest(LocalTest<V, S> singleTest, double maxFalsePositiveProbability) {
+            this(singleTest, repetitionsRequiredForDesiredConfidence(singleTest, maxFalsePositiveProbability));
         }
 
         RepeatedLocalTest(LocalTest<V, S> singleTest, int repetitionCount) {
@@ -62,10 +62,10 @@ public interface LocallyTestableCode<V> extends Code<V> {
             this.repetitionCount = repetitionCount;
         }
 
-        static int repetitionsRequiredForDesiredPower(LocalTest<?, ?> singleTest, double maxFalseNegativeProbability) {
+        static int repetitionsRequiredForDesiredConfidence(LocalTest<?, ?> singleTest, double maxFalsePositiveProbability) {
             // TODO: Make sure rounding is handled correctly here:
             return (int) Math.ceil(
-                    Math.log(maxFalseNegativeProbability) / Math.log(singleTest.falseNegativeProbability()));
+                    Math.log(maxFalsePositiveProbability) / Math.log(singleTest.falsePositiveProbability()));
         }
 
         public LocalTest<V, S> singleTest() {
@@ -82,9 +82,9 @@ public interface LocallyTestableCode<V> extends Code<V> {
         }
 
         @Override
-        public double falseNegativeProbability() {
+        public double falsePositiveProbability() {
             // TODO: Make sure rounding is handled correctly here:
-            return Math.pow(singleTest.falseNegativeProbability(), repetitionCount);
+            return Math.pow(singleTest.falsePositiveProbability(), repetitionCount);
         }
 
         @Override
@@ -109,8 +109,8 @@ public interface LocallyTestableCode<V> extends Code<V> {
             }
 
             @Override
-            public boolean isFailure() {
-                return evidenceList.stream().anyMatch(Evidence::isFailure);
+            public boolean isValid() {
+                return evidenceList.stream().allMatch(Evidence::isValid);
             }
         }
     }

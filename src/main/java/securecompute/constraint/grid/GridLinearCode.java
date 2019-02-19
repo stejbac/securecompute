@@ -35,15 +35,15 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
     }
 
     @Override
-    public RepeatedLocalTest<V, SimpleGridEvidence<V>> localTest(double maxFalseNegativeProbability) {
-        return new RepeatedLocalTest<>(localTest(), maxFalseNegativeProbability);
+    public RepeatedLocalTest<V, SimpleGridEvidence<V>> localTest(double maxFalsePositiveProbability) {
+        return new RepeatedLocalTest<>(localTest(), maxFalsePositiveProbability);
     }
 
     public static class SimpleLocalTest<V, E> implements LocallyTestableCode.LocalTest<V, SimpleGridEvidence<V>> {
 
         private final GridLinearCode<V, E> code;
         private final int distance;
-        private final double falseNegativeProbability;
+        private final double falsePositiveProbability;
 
         SimpleLocalTest(GridLinearCode<V, E> code) {
             this(code, 0, 0);
@@ -61,7 +61,7 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
 //            double prob2 = (1 - rowDistance / rowLen) * (1 - (colDistance + 1) / colLen);
 //            double prob1 = (1 - (rowDistance + 1) / rowLen) * (1 - 1 / colLen);
 //            double prob2 = (1 - 1 / rowLen) * (1 - (colDistance + 1) / colLen);
-            falseNegativeProbability = Math.max(
+            falsePositiveProbability = Math.max(
                     1 - (rowDistance + 1 - excludedRowCount) / rowLen,
                     1 - (colDistance + 1 - excludedColumnCount) / colLen
             );
@@ -77,8 +77,8 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
         }
 
         @Override
-        public double falseNegativeProbability() {
-            return falseNegativeProbability;
+        public double falsePositiveProbability() {
+            return falsePositiveProbability;
         }
 
         @Override
@@ -102,8 +102,8 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
         protected SimpleGridEvidence<V> evidence(int x, int y, List<V> column, List<V> row) {
             return new SimpleGridEvidence<V>(x, y, column, row) {
                 @Override
-                public boolean isFailure() {
-                    return !code.rowConstraint().isValid(row) || !code.columnConstraint().isValid(column);
+                public boolean isValid() {
+                    return code.rowConstraint().isValid(row) && code.columnConstraint().isValid(column);
                 }
             };
         }

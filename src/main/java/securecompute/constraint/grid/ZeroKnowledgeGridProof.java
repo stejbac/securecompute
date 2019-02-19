@@ -146,9 +146,9 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
     }
 
     @Override
-    public double minimumAllowedFalseNegativeProbability() {
+    public double minimumAllowedFalsePositiveProbability() {
         int maxAllowedRepetitions = Math.min(maxIndependentRowCount, maxIndependentColumnCount);
-        return ZeroKnowledgeRepeatedLocalTest.minimumAllowedFalseNegativeProbability(localTest(), maxAllowedRepetitions);
+        return ZeroKnowledgeRepeatedLocalTest.minimumAllowedFalsePositiveProbability(localTest(), maxAllowedRepetitions);
     }
 
     @Override
@@ -157,14 +157,14 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
     }
 
     @Override
-    public RepeatedLocalTest localTest(double maxFalseNegativeProbability) {
+    public RepeatedLocalTest localTest(double maxFalsePositiveProbability) {
         int maxAllowedRepetitions = Math.min(maxIndependentRowCount, maxIndependentColumnCount);
-        return new RepeatedLocalTest(maxFalseNegativeProbability, maxAllowedRepetitions);
+        return new RepeatedLocalTest(maxFalsePositiveProbability, maxAllowedRepetitions);
     }
 
     @Override
-    public RepeatedLocalTest localTestOfMaximalPower() {
-        return localTest(minimumAllowedFalseNegativeProbability());
+    public RepeatedLocalTest localTestOfMaximalConfidence() {
+        return localTest(minimumAllowedFalsePositiveProbability());
     }
 
     public class SimpleLocalTest extends GridProof<V, E>.SimpleLocalTest
@@ -178,9 +178,9 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
         protected SimpleGridEvidence<List<V>> evidence(int x, int y, List<List<V>> column, List<List<V>> row) {
             return new SimpleGridEvidence<List<V>>(x, y, column, row) {
                 @Override
-                public boolean isFailure() {
-                    return !ZeroKnowledgeGridProof.this.rowConstraint().isValid(row) ||
-                            !ZeroKnowledgeGridProof.this.columnConstraint().isValid(column);
+                public boolean isValid() {
+                    return ZeroKnowledgeGridProof.this.rowConstraint().isValid(row) &&
+                            ZeroKnowledgeGridProof.this.columnConstraint().isValid(column);
                 }
             };
         }
@@ -205,8 +205,8 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
             super(localTest(), 1);
         }
 
-        RepeatedLocalTest(double maxFalseNegativeProbability, int maxAllowedRepetitions) {
-            super(localTest(), maxFalseNegativeProbability, maxAllowedRepetitions);
+        RepeatedLocalTest(double maxFalsePositiveProbability, int maxAllowedRepetitions) {
+            super(localTest(), maxFalsePositiveProbability, maxAllowedRepetitions);
         }
 
         @Override
