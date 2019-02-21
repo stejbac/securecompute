@@ -145,6 +145,12 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
                 .collect(ImmutableList.toImmutableList());
     }
 
+    private GridLinearCode<List<V>, E> shorten(GridLinearCode<List<V>, E> outerCode) {
+        LinearCode<List<V>, E> rowCode = new ShortenedLinearCode<>(outerCode.rowConstraint(), witnessWidth);
+        LinearCode<List<V>, E> colCode = new ShortenedLinearCode<>(outerCode.columnConstraint(), witnessHeight);
+        return new GridLinearCode<>(rowCode, colCode);
+    }
+
     @Override
     public double minimumAllowedFalsePositiveProbability() {
         int maxAllowedRepetitions = Math.min(maxIndependentRowCount, maxIndependentColumnCount);
@@ -167,30 +173,11 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
         return localTest(minimumAllowedFalsePositiveProbability());
     }
 
-    public class SimpleLocalTest extends GridProof<V, E>.SimpleLocalTest
+    public class SimpleLocalTest extends GridLinearCode.SimpleLocalTest<List<V>, E>
             implements ZeroKnowledgeLocalTest<List<V>, SimpleGridEvidence<List<V>>> {
 
-        SimpleLocalTest() {
-            super(witnessWidth, witnessHeight);
-        }
-
-        @Override
-        protected SimpleGridEvidence<List<V>> evidence(int x, int y, List<List<V>> column, List<List<V>> row) {
-            return new SimpleGridEvidence<List<V>>(x, y, column, row) {
-                @Override
-                public boolean isValid() {
-                    return ZeroKnowledgeGridProof.this.rowConstraint().isValid(row) &&
-                            ZeroKnowledgeGridProof.this.columnConstraint().isValid(column);
-                }
-            };
-        }
-
-        @Override
-        public SimpleGridEvidence<List<V>> query(List<List<V>> vector, Random random) {
-            // The excluded rows & columns (those that pass through the witness) are at the bottom & right of the grid.
-            return query(vector,
-                    random.nextInt(width - witnessWidth),
-                    random.nextInt(height - witnessHeight));
+        private SimpleLocalTest() {
+            super(rowConstraint(), columnConstraint(), shorten(outerGridCode));
         }
 
         @Override

@@ -2,6 +2,7 @@ package securecompute.constraint.grid;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Lists;
+import securecompute.constraint.Constraint;
 import securecompute.constraint.LinearCode;
 import securecompute.constraint.LocallyTestableCode;
 import securecompute.constraint.block.BlockLinearCode;
@@ -31,7 +32,7 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
 
     @Override
     public SimpleLocalTest<V, E> localTest() {
-        return new SimpleLocalTest<>(this);
+        return new SimpleLocalTest<>(rowConstraint(), columnConstraint(), this);
     }
 
     @Override
@@ -41,29 +42,22 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
 
     public static class SimpleLocalTest<V, E> implements LocallyTestableCode.LocalTest<V, SimpleGridEvidence<V>> {
 
+        private final Constraint<V> rowConstraint, columnConstraint;
         private final GridLinearCode<V, E> code;
         private final int distance;
         private final double falsePositiveProbability;
 
-        SimpleLocalTest(GridLinearCode<V, E> code) {
-            this(code, 0, 0);
-        }
-
-        SimpleLocalTest(GridLinearCode<V, E> code, int excludedRowCount, int excludedColumnCount) {
+        SimpleLocalTest(Constraint<V> rowConstraint, Constraint<V> columnConstraint, GridLinearCode<V, E> code) {
+            this.rowConstraint = rowConstraint;
+            this.columnConstraint = columnConstraint;
             this.code = code;
             int rowDistance = code.rowConstraint().distance() - 1;
             int colDistance = code.columnConstraint().distance() - 1;
             distance = rowDistance * colDistance;
             // TODO: Make sure rounding is handled correctly here:
-            double rowLen = code.rowConstraint().length() - excludedRowCount;
-            double colLen = code.columnConstraint().length() - excludedColumnCount;
-//            double prob1 = (1 - (rowDistance + 1) / rowLen) * (1 - colDistance / colLen);
-//            double prob2 = (1 - rowDistance / rowLen) * (1 - (colDistance + 1) / colLen);
-//            double prob1 = (1 - (rowDistance + 1) / rowLen) * (1 - 1 / colLen);
-//            double prob2 = (1 - 1 / rowLen) * (1 - (colDistance + 1) / colLen);
             falsePositiveProbability = Math.max(
-                    1 - (rowDistance + 1 - excludedRowCount) / rowLen,
-                    1 - (colDistance + 1 - excludedColumnCount) / colLen
+                    1 - (rowDistance + 1.0) / code.rowConstraint().length(),
+                    1 - (colDistance + 1.0) / code.columnConstraint().length()
             );
         }
 
@@ -88,8 +82,8 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
                     random.nextInt(code.columnConstraint().length()));
         }
 
-        final SimpleGridEvidence<V> query(List<V> vector, int x, int y) {
-            List<List<V>> rows = Lists.partition(vector, code.rowConstraint().length());
+        private SimpleGridEvidence<V> query(List<V> vector, int x, int y) {
+            List<List<V>> rows = Lists.partition(vector, rowConstraint.length());
 
             List<V> row = rows.get(y);
             List<V> column = rows.stream()
@@ -99,11 +93,11 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
             return evidence(x, y, column, row);
         }
 
-        protected SimpleGridEvidence<V> evidence(int x, int y, List<V> column, List<V> row) {
+        SimpleGridEvidence<V> evidence(int x, int y, List<V> column, List<V> row) {
             return new SimpleGridEvidence<V>(x, y, column, row) {
                 @Override
                 public boolean isValid() {
-                    return code.rowConstraint().isValid(row) && code.columnConstraint().isValid(column);
+                    return rowConstraint.isValid(row) && columnConstraint.isValid(column);
                 }
             };
         }

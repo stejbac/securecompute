@@ -19,7 +19,7 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
 
     final GridLinearCode<V, E> topLayerCode, topLayerOuterCode; // TODO: Consider making these private & adding package-private getters.
     private final GridLinearCode<List<V>, E> innerGridCode;
-    private final GridLinearCode<List<V>, E> outerGridCode;
+    final GridLinearCode<List<V>, E> outerGridCode;
     private final TripleLayerConstraint<V, E> messageConstraint;
 
     private GridProof(GridLinearCode<V, E> topLayerCode, TripleLayerConstraint<V, E> messageConstraint,
@@ -120,8 +120,8 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
     }
 
     @Override
-    public SimpleLocalTest localTest() {
-        return new SimpleLocalTest();
+    public GridLinearCode.SimpleLocalTest<List<V>, E> localTest() {
+        return new GridLinearCode.SimpleLocalTest<>(rowConstraint(), columnConstraint(), outerGridCode);
     }
 
     @Override
@@ -165,28 +165,6 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
                     topLayerCode.isValid(layers.get(parityLayerIndex)) &&
                     topLayerOuterCode.isValid(layers.get(3 - parityLayerIndex)) &&
                     messageConstraint.isValid(innerCode.decode(vector));
-        }
-    }
-
-    public class SimpleLocalTest extends GridLinearCode.SimpleLocalTest<List<V>, E> {
-
-        SimpleLocalTest() {
-            super(outerGridCode);
-        }
-
-        SimpleLocalTest(int excludedRowCount, int excludedColumnCount) {
-            super(outerGridCode, excludedRowCount, excludedColumnCount);
-        }
-
-        @Override
-        protected SimpleGridEvidence<List<V>> evidence(int x, int y, List<List<V>> column, List<List<V>> row) {
-            return new SimpleGridEvidence<List<V>>(x, y, column, row) {
-                @Override
-                public boolean isValid() {
-                    return GridProof.this.rowConstraint().isValid(row) &&
-                            GridProof.this.columnConstraint().isValid(column);
-                }
-            };
         }
     }
 }
