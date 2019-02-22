@@ -212,14 +212,17 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
             SortedMap<Integer, List<List<V>>> sampledColumns = new TreeMap<>();
 
             evidence.evidenceList().forEach(e -> {
-                sampledRows.put(e.y, null);
-                sampledColumns.put(e.x, null);
+                if (e.y >= 0) {
+                    sampledRows.put(e.y, null);
+                } else {
+                    sampledColumns.put(e.x, null);
+                }
             });
 
             fillInFakeRowAndColumnSamples(sampledRows, sampledColumns);
 
             return new RepeatedEvidence<>(evidence.evidenceList().stream()
-                    .map(e -> singleTest().evidence(e.x, e.y, sampledColumns.get(e.x), sampledRows.get(e.y)))
+                    .map(e -> singleTest().evidence(e.x, e.y, e.y >= 0 ? sampledRows.get(e.y) : sampledColumns.get(e.x)))
                     .collect(ImmutableList.toImmutableList()));
         }
     }

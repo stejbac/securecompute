@@ -31,13 +31,11 @@ class GridProofTest {
     private static final AlgebraicConstraint<Gf256.Element, Gf256.Element> ROW_MESSAGE_CONSTRAINT = algebraicConstraint(2, 85, 1,
             BLOCK_SPACE,
             v -> ImmutableList.of(v.get(0).multiply(v.get(1)).subtract(AES_FIELD.one()))
-//            v.get(0).multiply(v.get(1)).equals(AES_FIELD.one())
     );
 
     private static final AlgebraicConstraint<Gf256.Element, Gf256.Element> COL_MESSAGE_CONSTRAINT = algebraicConstraint(1, 50, 1,
             BLOCK_SPACE,
             v -> ImmutableList.of(v.get(0).add(v.get(1)).add(v.get(2)).subtract(AES_FIELD.one()))
-//            v.get(0).add(v.get(1)).add(v.get(2)).equals(AES_FIELD.one())
     );
 
     private static final GridProof<Gf256.Element, Gf256.Element> GRID_PROOF = new GridProof<>(
@@ -103,9 +101,9 @@ class GridProofTest {
 
     @Test
     void gridProofHasCorrectLocalTestProperties() {
-//        assertEquals(171 * 151, GRID_PROOF.asLinearCode().distance());
         assertEquals(170 * 101, GRID_PROOF.localTest().distance());
-        assertEquals(98.0 / 200, GRID_PROOF.localTest().falsePositiveProbability());
+        double expectedErrorRate = 1 - 171.0 * 102.0 / (171 * 200 + 102 * 255);
+        assertEquals(expectedErrorRate, GRID_PROOF.localTest().falsePositiveProbability(), 1e-15);
     }
 
     @Test

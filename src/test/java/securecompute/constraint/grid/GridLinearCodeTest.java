@@ -98,15 +98,34 @@ class GridLinearCodeTest {
     }
 
     @Test
+    void localTestHasCorrectRowSelectionRate() {
+        Random rnd = new Random(12345);
+
+        long rowCount = Stream.generate(() -> GRID_CODE.localTest().query(MINIMAL_BAD_VECTOR_OF_ERRORS, rnd))
+                .limit(5000)
+                .filter(e -> e.y >= 0)
+                .count();
+        double rowSelectionRate = rowCount / 5000.0;
+
+        assertEquals(rowSelectionRate, GRID_CODE.localTest().rowSelectionProbability(), 0.01);
+    }
+
+    @Test
+    void localTestPreferentiallySamplesFromStrongestCode() {
+        // Here, the 'strongest' code is that with the highest relative distance, i.e. the Hamming (column) code.
+        assertTrue(GRID_CODE.localTest().rowSelectionProbability() < 0.5);
+    }
+
+    @Test
     void compoundLocalTestCanHaveCryptographicStrength() {
-        Assumptions.assumeTrue(GRID_CODE.localTest().falsePositiveProbability() > 0.5);
-        Assumptions.assumeTrue(GRID_CODE.localTest().falsePositiveProbability() < 0.707);
+        Assumptions.assumeTrue(GRID_CODE.localTest().falsePositiveProbability() > 0.707); // ~ 0.5 ** 0.5
+        Assumptions.assumeTrue(GRID_CODE.localTest().falsePositiveProbability() < 0.841); // ~ 0.5 ** 0.25
 
         RepeatedLocalTest<Boolean, ?> compoundTest = GRID_CODE.localTest(0x1.0p-256);
 
-        assertTrue(compoundTest.singleTest().falsePositiveProbability() < 0.707);
-        assertTrue(compoundTest.repetitionCount() > 256);
-        assertTrue(compoundTest.repetitionCount() < 512);
+        assertTrue(compoundTest.singleTest().falsePositiveProbability() < 0.841);
+        assertTrue(compoundTest.repetitionCount() > 512);
+        assertTrue(compoundTest.repetitionCount() < 1024);
         assertTrue(compoundTest.falsePositiveProbability() <= 0x1.0p-256);
 
         Random rnd = new Random(23456);

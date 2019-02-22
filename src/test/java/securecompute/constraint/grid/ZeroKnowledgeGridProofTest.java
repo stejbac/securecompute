@@ -27,8 +27,8 @@ class ZeroKnowledgeGridProofTest {
     private static final Gf256 AES_FIELD = new Gf256(0b100011011, 0b11);
     private static final SingletonVectorSpace<Gf256.Element> BLOCK_SPACE = new SingletonVectorSpace<>(AES_FIELD);
 
-    private static final ReedSolomonCode<Gf256.Element> ROW_CODE = new ReedSolomonCode<>(128, 49, AES_FIELD);
-    private static final ReedSolomonCode<Gf256.Element> COL_CODE = new ReedSolomonCode<>(255, 49, AES_FIELD);
+    private static final ReedSolomonCode<Gf256.Element> ROW_CODE = new ReedSolomonCode<>(128, 60, AES_FIELD);
+    private static final ReedSolomonCode<Gf256.Element> COL_CODE = new ReedSolomonCode<>(255, 60, AES_FIELD);
 
     private static final AlgebraicConstraint<Gf256.Element, Gf256.Element> ROW_MESSAGE_CONSTRAINT = algebraicConstraint(2, 1, 1,
             BLOCK_SPACE,
@@ -60,7 +60,7 @@ class ZeroKnowledgeGridProofTest {
         System.out.println(minErrorRate);
 
         assertEquals(minErrorRate, GRID_PROOF.localTestOfMaximalConfidence().falsePositiveProbability(), 1e-15);
-        assertEquals(48, GRID_PROOF.localTestOfMaximalConfidence().repetitionCount());
+        assertEquals(59, GRID_PROOF.localTestOfMaximalConfidence().repetitionCount());
     }
 
     @Test
@@ -121,12 +121,7 @@ class ZeroKnowledgeGridProofTest {
     }
 
     private Stream<Map.Entry<Long, ?>> sampledElements(SimpleGridEvidence<?> e) {
-
-        Stream<Map.Entry<Long, ?>> columnElements = Streams.mapWithIndex(e.column.stream(), (elt, y) ->
-                Collections.singletonMap(e.x + y * 128L, elt).entrySet().iterator().next());
-        Stream<Map.Entry<Long, ?>> rowElements = Streams.mapWithIndex(e.row.stream(), (elt, x) ->
-                Collections.singletonMap(x + e.y * 128L, elt).entrySet().iterator().next());
-
-        return Stream.concat(columnElements, rowElements);
+        return Streams.mapWithIndex(e.line.stream(), (elt, i) ->
+                Collections.singletonMap(e.y >= 0 ? i + e.y * 128L : e.x + i * 128L, elt).entrySet().iterator().next());
     }
 }

@@ -46,19 +46,35 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
         private final GridLinearCode<V, E> code;
         private final int distance;
         private final double falsePositiveProbability;
+        private final double rowSelectionProbability;
 
         SimpleLocalTest(Constraint<V> rowConstraint, Constraint<V> columnConstraint, GridLinearCode<V, E> code) {
+            this(rowConstraint, columnConstraint, code, optimalRowSelectionProbability(code));
+        }
+
+        private SimpleLocalTest(Constraint<V> rowConstraint, Constraint<V> columnConstraint, GridLinearCode<V, E> code,
+                                double rowSelectionProbability) {
             this.rowConstraint = rowConstraint;
             this.columnConstraint = columnConstraint;
             this.code = code;
             int rowDistance = code.rowConstraint().distance() - 1;
             int colDistance = code.columnConstraint().distance() - 1;
             distance = rowDistance * colDistance;
-            // TODO: Make sure rounding is handled correctly here:
+
+            // TODO: Make sure rounding is handled correctly here...
+            this.rowSelectionProbability = rowSelectionProbability;
+            double colSelectionProbability = 1 - rowSelectionProbability;
+
             falsePositiveProbability = Math.max(
-                    1 - (rowDistance + 1.0) / code.rowConstraint().length(),
-                    1 - (colDistance + 1.0) / code.columnConstraint().length()
+                    1 - colSelectionProbability * (rowDistance + 1) / code.rowConstraint().length(),
+                    1 - rowSelectionProbability * (colDistance + 1) / code.columnConstraint().length()
             );
+        }
+
+        private static double optimalRowSelectionProbability(GridLinearCode<?, ?> code) {
+            double x = (double) code.rowConstraint().distance() * code.columnConstraint().length();
+            double y = (double) code.columnConstraint().distance() * code.rowConstraint().length();
+            return x / (x + y);
         }
 
         public GridLinearCode<V, E> code() {
@@ -75,29 +91,33 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
             return falsePositiveProbability;
         }
 
+        public double rowSelectionProbability() {
+            return rowSelectionProbability;
+        }
+
         @Override
         public SimpleGridEvidence<V> query(List<V> vector, Random random) {
-            return query(vector,
-                    random.nextInt(code.rowConstraint().length()),
-                    random.nextInt(code.columnConstraint().length()));
+            return random.nextDouble() <= rowSelectionProbability
+                    ? query(vector, -1, random.nextInt(code.columnConstraint().length()))
+                    : query(vector, random.nextInt(code.rowConstraint().length()), -1);
         }
 
         private SimpleGridEvidence<V> query(List<V> vector, int x, int y) {
             List<List<V>> rows = Lists.partition(vector, rowConstraint.length());
 
-            List<V> row = rows.get(y);
-            List<V> column = rows.stream()
-                    .map(r -> r.get(x))
-                    .collect(Collectors.toList()); // Don't use 'toImmutableList', in order to support null elements (erasures)
+            // Don't use 'toImmutableList', in order to support null elements (erasures):
+            List<V> line = y >= 0
+                    ? rows.get(y)
+                    : rows.stream().map(r -> r.get(x)).collect(Collectors.toList());
 
-            return evidence(x, y, column, row);
+            return evidence(x, y, line);
         }
 
-        SimpleGridEvidence<V> evidence(int x, int y, List<V> column, List<V> row) {
-            return new SimpleGridEvidence<V>(x, y, column, row) {
+        SimpleGridEvidence<V> evidence(int x, int y, List<V> line) {
+            return new SimpleGridEvidence<V>(x, y, line) {
                 @Override
                 public boolean isValid() {
-                    return rowConstraint.isValid(row) && columnConstraint.isValid(column);
+                    return y >= 0 ? rowConstraint.isValid(line) : columnConstraint.isValid(line);
                 }
             };
         }
@@ -107,13 +127,15 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
 
         // TODO: Make private:
         final int x, y;
-        final List<V> column, row;
+        final List<V> line;
 
-        SimpleGridEvidence(int x, int y, List<V> column, List<V> row) {
+        SimpleGridEvidence(int x, int y, List<V> line) {
+            if (x < 0 && y < 0 || x != -1 && y != -1) {
+                throw new IllegalArgumentException("Exactly one index must be non-negative and the other must equal -1");
+            }
             this.x = x;
             this.y = y;
-            this.column = column;
-            this.row = row;
+            this.line = line;
         }
 
         @Override
@@ -121,8 +143,7 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
             return MoreObjects.toStringHelper(this)
                     .add("x", x)
                     .add("y", y)
-                    .add("column", column)
-                    .add("row", row)
+                    .add("line", line)
                     .toString();
         }
     }
