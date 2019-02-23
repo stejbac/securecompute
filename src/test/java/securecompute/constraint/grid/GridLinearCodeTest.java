@@ -44,12 +44,12 @@ class GridLinearCodeTest {
     private static final GridLinearCode<Boolean, Boolean> GRID_CODE = new GridLinearCode<>(
             BINARY_GOLAY_CODE, HAMMING_CODE);
 
-    private static final List<Boolean> MINIMAL_BAD_VECTOR_OF_ERASURES = IntStream.range(0, 23 * 23)
+    private static final List<Boolean> MINIMAL_BAD_VECTOR_OF_ERASURES = IntStream.range(0, 23 * 7)
             .mapToObj(i -> i % 23 < 6 && i / 23 < 3 ? null : false)
             .collect(Collectors.toList());
 
     // FIXME: This isn't really a bad (i.e. uncorrectable) vector. For that, need to make row & column codeword symbols 'incompatible', so GRID_CODE is 0.
-    private static final List<Boolean> MINIMAL_BAD_VECTOR_OF_ERRORS = IntStream.range(0, 23 * 23)
+    private static final List<Boolean> MINIMAL_BAD_VECTOR_OF_ERRORS = IntStream.range(0, 23 * 7)
             .mapToObj(i -> (0b110001110101 >> i % 23 & 1) != 0 && i / 23 < 2)
             .collect(Collectors.toList());
 
