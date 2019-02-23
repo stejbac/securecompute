@@ -120,6 +120,25 @@ class ZeroKnowledgeGridProofTest {
         assertFalse(sampledElements.isEmpty());
     }
 
+    @Test
+    void singletonSimulatedEvidenceHasExpectedProperties() {
+        GRID_PROOF.getRandom().setSeed(3579);
+        ZeroKnowledgeGridProof<Gf256.Element, ?>.SimpleLocalTest simpleTest = GRID_PROOF.localTest();
+
+        SimpleGridEvidence<?> realEvidence = simpleTest.query(ENCODED_VALID_WITNESS, new Random(2468));
+        SimpleGridEvidence<?> simulatedEvidence = simpleTest.simulate(new Random(2468));
+
+        // Real vs. simulated sampled rows/column is the same, given the same random seed...
+        assertAll(() -> {
+            assertEquals(realEvidence.getClass(), simulatedEvidence.getClass());
+            assertEquals(realEvidence.x, simulatedEvidence.x);
+            assertEquals(realEvidence.y, simulatedEvidence.y);
+        });
+
+        // Simulated evidence is valid.
+        assertTrue(simulatedEvidence.isValid());
+    }
+
     private Stream<Map.Entry<Long, ?>> sampledElements(SimpleGridEvidence<?> e) {
         return Streams.mapWithIndex(e.line.stream(), (elt, i) ->
                 Collections.singletonMap(e.y >= 0 ? i + e.y * 128L : e.x + i * 128L, elt).entrySet().iterator().next());

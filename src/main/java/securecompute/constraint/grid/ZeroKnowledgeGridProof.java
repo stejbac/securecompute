@@ -182,7 +182,7 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
 
         @Override
         public SimpleGridEvidence<List<V>> simulate(Random random) {
-            return new RepeatedLocalTest().simulate(random).evidenceList().get(1);
+            return new RepeatedLocalTest().simulate(random).evidenceList().get(0);
         }
     }
 
