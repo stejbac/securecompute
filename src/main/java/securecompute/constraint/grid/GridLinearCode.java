@@ -31,7 +31,7 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
     }
 
     @Override
-    public SimpleLocalTest<V, E> localTest() {
+    public SimpleLocalTest<V> localTest() {
         return new SimpleLocalTest<>(rowConstraint(), columnConstraint(), this);
     }
 
@@ -40,34 +40,36 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
         return new RepeatedLocalTest<>(localTest(), maxFalsePositiveProbability);
     }
 
-    public static class SimpleLocalTest<V, E> implements LocallyTestableCode.LocalTest<V, SimpleGridEvidence<V>> {
+    public static class SimpleLocalTest<V> implements LocallyTestableCode.LocalTest<V, SimpleGridEvidence<V>> {
 
         private final Constraint<V> rowConstraint, columnConstraint;
-        private final GridLinearCode<V, E> code;
+        private final GridLinearCode<?, ?> code;
         private final int distance;
         private final double falsePositiveProbability;
         private final double rowSelectionProbability;
 
-        SimpleLocalTest(Constraint<V> rowConstraint, Constraint<V> columnConstraint, GridLinearCode<V, E> code) {
+        SimpleLocalTest(Constraint<V> rowConstraint, Constraint<V> columnConstraint, GridLinearCode<?, ?> code) {
             this(rowConstraint, columnConstraint, code, optimalRowSelectionProbability(code));
         }
 
-        private SimpleLocalTest(Constraint<V> rowConstraint, Constraint<V> columnConstraint, GridLinearCode<V, E> code,
+        private SimpleLocalTest(Constraint<V> rowConstraint, Constraint<V> columnConstraint, GridLinearCode<?, ?> code,
                                 double rowSelectionProbability) {
             this.rowConstraint = rowConstraint;
             this.columnConstraint = columnConstraint;
             this.code = code;
-            int rowDistance = code.rowConstraint().distance() - 1;
-            int colDistance = code.columnConstraint().distance() - 1;
-            distance = rowDistance * colDistance;
+            int rowDistance = code.rowConstraint().distance();
+            int colDistance = code.columnConstraint().distance();
+            int excludedColCount = rowConstraint.length() - code.rowConstraint().length();
+            int excludedRowCount = columnConstraint.length() - code.columnConstraint().length();
+            distance = (rowDistance + excludedColCount - 1) * (colDistance + excludedRowCount - 1);
 
             // TODO: Make sure rounding is handled correctly here...
             this.rowSelectionProbability = rowSelectionProbability;
             double colSelectionProbability = 1 - rowSelectionProbability;
 
             falsePositiveProbability = Math.max(
-                    1 - colSelectionProbability * (rowDistance + 1) / code.rowConstraint().length(),
-                    1 - rowSelectionProbability * (colDistance + 1) / code.columnConstraint().length()
+                    1 - colSelectionProbability * rowDistance / code.rowConstraint().length(),
+                    1 - rowSelectionProbability * colDistance / code.columnConstraint().length()
             );
         }
 
@@ -75,10 +77,6 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
             double x = (double) code.rowConstraint().distance() * code.columnConstraint().length();
             double y = (double) code.columnConstraint().distance() * code.rowConstraint().length();
             return x / (x + y);
-        }
-
-        public GridLinearCode<V, E> code() {
-            return code;
         }
 
         @Override

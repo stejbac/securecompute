@@ -19,12 +19,18 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
     private final Random random;
     private final FiniteField<E> field;
     private final TripleLayerConstraint<V, E> witnessConstraint;
+    private final GridLinearCode<V, E> puncturedTopLayerOuterCode;
     private final int width, height;
     private final int witnessWidth, witnessHeight;
     private final int paddingWidth, paddingHeight;
     private final int maxIndependentColumnCount, maxIndependentRowCount;
 
     public ZeroKnowledgeGridProof(GridLinearCode<V, E> topLayerCode, TripleLayerConstraint<V, E> witnessConstraint, Random random) {
+        this(topLayerCode, shorten(topLayerCode, witnessConstraint), witnessConstraint, random);
+    }
+
+    private ZeroKnowledgeGridProof(GridLinearCode<V, E> topLayerCode, GridLinearCode<V, E> shortenedTopLayerCode,
+                                   TripleLayerConstraint<V, E> witnessConstraint, Random random) {
         super(
                 topLayerCode,
                 TripleLayerConstraint.extendToSize(witnessConstraint,
@@ -42,17 +48,14 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
 
         paddingWidth = topLayerCode.rowConstraint().dimension() - witnessWidth;
         paddingHeight = topLayerCode.columnConstraint().dimension() - witnessHeight;
-        maxIndependentColumnCount = topLayerCode.rowConstraint().codistance() - witnessWidth - 1;
-        maxIndependentRowCount = topLayerCode.columnConstraint().codistance() - witnessHeight - 1;
+        maxIndependentColumnCount = shortenedTopLayerCode.rowConstraint().codistance() - 1;
+        maxIndependentRowCount = shortenedTopLayerCode.columnConstraint().codistance() - 1;
 
         if (maxIndependentColumnCount <= 0) {
-            throw new IllegalArgumentException("Inner row code must have codistance at least 2 greater than the witness width");
+            throw new IllegalArgumentException("Shortened inner row code must have codistance at least 2");
         }
         if (maxIndependentRowCount <= 0) {
-            throw new IllegalArgumentException("Inner column code must have codistance at least 2 greater than the witness height");
-        }
-        if (!topLayerCode.rowConstraint().isSystematic() || !topLayerCode.columnConstraint().isSystematic()) {
-            throw new IllegalArgumentException("Inner row & column codes must be systematic");
+            throw new IllegalArgumentException("Shortened inner column code must have codistance at least 2");
         }
         if (topLayerOuterCode.rowConstraint().distance() <= witnessWidth) {
             throw new IllegalArgumentException("Outer row code must have greater distance than the witness width");
@@ -60,6 +63,23 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
         if (topLayerOuterCode.columnConstraint().distance() <= witnessHeight) {
             throw new IllegalArgumentException("Outer column code must have greater distance than the witness height");
         }
+
+        puncturedTopLayerOuterCode = puncture(topLayerOuterCode, witnessConstraint);
+    }
+
+    private static <W, E> GridLinearCode<W, E> shorten(GridLinearCode<W, E> innerCode, GridConstraint<?> witnessConstraint) {
+        if (!innerCode.rowConstraint().isSystematic() || !innerCode.columnConstraint().isSystematic()) {
+            throw new IllegalArgumentException("Inner row & column codes must be systematic");
+        }
+        LinearCode<W, E> rowCode = new ShortenedLinearCode<>(innerCode.rowConstraint(), witnessConstraint.rowConstraint().length());
+        LinearCode<W, E> colCode = new ShortenedLinearCode<>(innerCode.columnConstraint(), witnessConstraint.columnConstraint().length());
+        return new GridLinearCode<>(rowCode, colCode);
+    }
+
+    private static <W, E> GridLinearCode<W, E> puncture(GridLinearCode<W, E> outerCode, GridConstraint<?> witnessConstraint) {
+        LinearCode<W, E> rowCode = new PuncturedLinearCode<>(outerCode.rowConstraint(), witnessConstraint.rowConstraint().length());
+        LinearCode<W, E> colCode = new PuncturedLinearCode<>(outerCode.columnConstraint(), witnessConstraint.columnConstraint().length());
+        return new GridLinearCode<>(rowCode, colCode);
     }
 
     @Override
@@ -137,18 +157,13 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
 
     @Override
     public List<List<V>> decode(List<List<V>> codeword) {
-        // Take the bottom right rectangle of the grid, of size witnessWidth * witnessHeight.
-        return Lists.partition(codeword, width).stream()
-                .map(v -> v.subList(width - witnessWidth, width).stream())
-                .skip(height - witnessHeight)
+        // Take the bottom right rectangle of the _decoded_ grid, of size witnessWidth * witnessHeight.
+        // (This doesn't assume that the top layer code is systematic.)
+        return Lists.partition(innerGridCode.decode(codeword), witnessWidth + paddingWidth).stream()
+                .map(v -> v.subList(paddingWidth, witnessWidth + paddingWidth).stream())
+                .skip(paddingHeight)
                 .flatMap(Function.identity())
                 .collect(ImmutableList.toImmutableList());
-    }
-
-    private GridLinearCode<List<V>, E> shorten(GridLinearCode<List<V>, E> outerCode) {
-        LinearCode<List<V>, E> rowCode = new ShortenedLinearCode<>(outerCode.rowConstraint(), witnessWidth);
-        LinearCode<List<V>, E> colCode = new ShortenedLinearCode<>(outerCode.columnConstraint(), witnessHeight);
-        return new GridLinearCode<>(rowCode, colCode);
     }
 
     @Override
@@ -173,11 +188,11 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
         return localTest(minimumAllowedFalsePositiveProbability());
     }
 
-    public class SimpleLocalTest extends GridLinearCode.SimpleLocalTest<List<V>, E>
+    public class SimpleLocalTest extends GridLinearCode.SimpleLocalTest<List<V>>
             implements ZeroKnowledgeLocalTest<List<V>, SimpleGridEvidence<List<V>>> {
 
         private SimpleLocalTest() {
-            super(rowConstraint(), columnConstraint(), shorten(outerGridCode));
+            super(rowConstraint(), columnConstraint(), puncturedTopLayerOuterCode);
         }
 
         @Override

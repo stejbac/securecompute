@@ -9,6 +9,7 @@ import securecompute.algebra.polynomial.Polynomial;
 import securecompute.constraint.LocallyTestableCode.LocalTest.Evidence;
 import securecompute.constraint.LocallyTestableCode.RepeatedLocalTest;
 import securecompute.constraint.cyclic.PuncturedPolynomialCode;
+import securecompute.helper.LowDiscrepancyFakeRandom;
 
 import java.util.List;
 import java.util.Objects;
@@ -86,7 +87,7 @@ class GridLinearCodeTest {
 
     @Test
     void localTestHasCorrectFalsePositiveRate() {
-        Random rnd = new Random(12345);
+        Random rnd = new LowDiscrepancyFakeRandom(12345);
 
         long passCount = Stream.generate(() -> GRID_CODE.localTest().query(MINIMAL_BAD_VECTOR_OF_ERRORS, rnd))
                 .limit(5000)
@@ -94,12 +95,12 @@ class GridLinearCodeTest {
                 .count();
         double passRate = passCount / 5000.0;
 
-        assertEquals(passRate, GRID_CODE.localTest().falsePositiveProbability(), 0.01);
+        assertEquals(passRate, GRID_CODE.localTest().falsePositiveProbability(), 0.0005);
     }
 
     @Test
     void localTestHasCorrectRowSelectionRate() {
-        Random rnd = new Random(12345);
+        Random rnd = new LowDiscrepancyFakeRandom(12345);
 
         long rowCount = Stream.generate(() -> GRID_CODE.localTest().query(MINIMAL_BAD_VECTOR_OF_ERRORS, rnd))
                 .limit(5000)
@@ -107,7 +108,7 @@ class GridLinearCodeTest {
                 .count();
         double rowSelectionRate = rowCount / 5000.0;
 
-        assertEquals(rowSelectionRate, GRID_CODE.localTest().rowSelectionProbability(), 0.01);
+        assertEquals(rowSelectionRate, GRID_CODE.localTest().rowSelectionProbability(), 0.0005);
     }
 
     @Test

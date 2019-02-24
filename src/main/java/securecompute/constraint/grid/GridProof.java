@@ -18,8 +18,7 @@ import java.util.stream.Collectors;
 public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyTestableProof<List<V>> {
 
     final GridLinearCode<V, E> topLayerCode, topLayerOuterCode; // TODO: Consider making these private & adding package-private getters.
-    private final GridLinearCode<List<V>, E> innerGridCode;
-    final GridLinearCode<List<V>, E> outerGridCode;
+    final GridLinearCode<List<V>, E> innerGridCode;
     private final TripleLayerConstraint<V, E> messageConstraint;
 
     private GridProof(GridLinearCode<V, E> topLayerCode, TripleLayerConstraint<V, E> messageConstraint,
@@ -30,7 +29,6 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
         this.messageConstraint = messageConstraint;
 
         innerGridCode = new GridLinearCode<>(rowConstraint.innerCode, columnConstraint.innerCode);
-        outerGridCode = new GridLinearCode<>(rowConstraint.outerCode, columnConstraint.outerCode);
         topLayerOuterCode = new GridLinearCode<>(rowConstraint.topLayerOuterCode, columnConstraint.topLayerOuterCode);
     }
 
@@ -64,7 +62,7 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
 
     @Override
     public int distance() {
-        return outerGridCode.distance();
+        return topLayerOuterCode.distance();
     }
 
     @Override
@@ -120,8 +118,8 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
     }
 
     @Override
-    public GridLinearCode.SimpleLocalTest<List<V>, E> localTest() {
-        return new GridLinearCode.SimpleLocalTest<>(rowConstraint(), columnConstraint(), outerGridCode);
+    public GridLinearCode.SimpleLocalTest<List<V>> localTest() {
+        return new GridLinearCode.SimpleLocalTest<>(rowConstraint(), columnConstraint(), topLayerOuterCode);
     }
 
     @Override
@@ -133,7 +131,7 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
 
         private final Constraint<List<V>> messageConstraint;
         private final LinearCode<V, E> topLayerCode, topLayerOuterCode;
-        private final BlockLinearCode<V, E> innerCode, outerCode;
+        private final BlockLinearCode<V, E> innerCode;
         private final int parityLayerIndex;
 
         LineConstraint(TripleLayerConstraint.LineConstraint<V, E> messageConstraint,
@@ -149,7 +147,6 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
             this.topLayerCode = topLayerCode;
             topLayerOuterCode = power(topLayerCode, degree);
             innerCode = new BlockLinearCode<>(topLayerCode, 3);
-            outerCode = new BlockLinearCode<>(topLayerOuterCode, 3);
             parityLayerIndex = messageConstraint.parityLayerIndex();
         }
 

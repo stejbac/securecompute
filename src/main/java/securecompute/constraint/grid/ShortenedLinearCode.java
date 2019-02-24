@@ -7,12 +7,12 @@ import securecompute.constraint.LinearCode;
 import java.util.Collections;
 import java.util.List;
 
-public class ShortenedLinearCode<V, E> implements LinearCode<V, E> {
+class ShortenedLinearCode<V, E> implements LinearCode<V, E> {
 
     private final LinearCode<V, E> baseCode;
     private final int shortenNumber;
 
-    public ShortenedLinearCode(LinearCode<V, E> baseCode, int shortenNumber) {
+    ShortenedLinearCode(LinearCode<V, E> baseCode, int shortenNumber) {
         if (!baseCode.isSystematic()) {
             throw new IllegalArgumentException("Code to be shortened must be systematic");
         }
@@ -49,11 +49,6 @@ public class ShortenedLinearCode<V, E> implements LinearCode<V, E> {
     }
 
     @Override
-    public List<V> parityCheck(List<V> vector) {
-        return baseCode.parityCheck(zeroExtend(vector));
-    }
-
-    @Override
     public List<V> encode(List<V> message) {
         return baseCode.encode(zeroExtend(message)).subList(0, length());
     }
@@ -61,6 +56,11 @@ public class ShortenedLinearCode<V, E> implements LinearCode<V, E> {
     @Override
     public List<V> decode(List<V> codeword) {
         return baseCode.decode(zeroExtend(codeword)).subList(0, dimension());
+    }
+
+    @Override
+    public List<V> parityCheck(List<V> vector) {
+        return baseCode.parityCheck(zeroExtend(vector));
     }
 
     private List<V> zeroExtend(List<V> vector) {
