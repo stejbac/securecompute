@@ -1,16 +1,20 @@
 package securecompute.constraint.grid;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import securecompute.constraint.Constraint;
 import securecompute.constraint.LinearCode;
 import securecompute.constraint.LocallyTestableCode;
+import securecompute.constraint.LocallyTestableCode.LocalTest.Evidence;
 import securecompute.constraint.block.BlockLinearCode;
 import securecompute.constraint.concatenated.ConcatenatedLinearCode;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implements LocallyTestableCode<V> {
 
@@ -36,47 +40,27 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
     }
 
     @Override
-    public RepeatedLocalTest<V, SimpleGridEvidence<V>> localTest(double maxFalsePositiveProbability) {
-        return new RepeatedLocalTest<>(localTest(), maxFalsePositiveProbability);
+    public CompoundLocalTest<V> localTest(double maxFalsePositiveProbability) {
+        return new CompoundLocalTest<>(rowConstraint(), columnConstraint(), this, maxFalsePositiveProbability);
     }
 
-    public static class SimpleLocalTest<V> implements LocallyTestableCode.LocalTest<V, SimpleGridEvidence<V>> {
+    static abstract class BaseLocalTest<V, S extends Evidence> implements LocallyTestableCode.LocalTest<V, S> {
 
         private final Constraint<V> rowConstraint, columnConstraint;
         private final GridLinearCode<?, ?> code;
         private final int distance;
-        private final double falsePositiveProbability;
-        private final double rowSelectionProbability;
 
-        SimpleLocalTest(Constraint<V> rowConstraint, Constraint<V> columnConstraint, GridLinearCode<?, ?> code) {
-            this(rowConstraint, columnConstraint, code, optimalRowSelectionProbability(code));
-        }
-
-        private SimpleLocalTest(Constraint<V> rowConstraint, Constraint<V> columnConstraint, GridLinearCode<?, ?> code,
-                                double rowSelectionProbability) {
+        BaseLocalTest(Constraint<V> rowConstraint, Constraint<V> columnConstraint, GridLinearCode<?, ?> code) {
             this.rowConstraint = rowConstraint;
             this.columnConstraint = columnConstraint;
             this.code = code;
-            int rowDistance = code.rowConstraint().distance();
-            int colDistance = code.columnConstraint().distance();
             int excludedColCount = rowConstraint.length() - code.rowConstraint().length();
             int excludedRowCount = columnConstraint.length() - code.columnConstraint().length();
-            distance = (rowDistance + excludedColCount - 1) * (colDistance + excludedRowCount - 1);
-
-            // TODO: Make sure rounding is handled correctly here...
-            this.rowSelectionProbability = rowSelectionProbability;
-            double colSelectionProbability = 1 - rowSelectionProbability;
-
-            falsePositiveProbability = Math.max(
-                    1 - colSelectionProbability * rowDistance / code.rowConstraint().length(),
-                    1 - rowSelectionProbability * colDistance / code.columnConstraint().length()
-            );
+            distance = (code.rowConstraint().distance() + excludedColCount - 1) * (code.columnConstraint().distance() + excludedRowCount - 1);
         }
 
-        private static double optimalRowSelectionProbability(GridLinearCode<?, ?> code) {
-            double x = (double) code.rowConstraint().distance() * code.columnConstraint().length();
-            double y = (double) code.columnConstraint().distance() * code.rowConstraint().length();
-            return x / (x + y);
+        GridLinearCode<?, ?> code() {
+            return code;
         }
 
         @Override
@@ -84,23 +68,7 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
             return distance;
         }
 
-        @Override
-        public double falsePositiveProbability() {
-            return falsePositiveProbability;
-        }
-
-        public double rowSelectionProbability() {
-            return rowSelectionProbability;
-        }
-
-        @Override
-        public SimpleGridEvidence<V> query(List<V> vector, Random random) {
-            return random.nextDouble() <= rowSelectionProbability
-                    ? query(vector, -1, random.nextInt(code.columnConstraint().length()))
-                    : query(vector, random.nextInt(code.rowConstraint().length()), -1);
-        }
-
-        private SimpleGridEvidence<V> query(List<V> vector, int x, int y) {
+        SimpleGridEvidence<V> query(List<V> vector, int x, int y) {
             List<List<V>> rows = Lists.partition(vector, rowConstraint.length());
 
             // Don't use 'toImmutableList', in order to support null elements (erasures):
@@ -121,7 +89,7 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
         }
     }
 
-    public static abstract class SimpleGridEvidence<V> implements LocalTest.Evidence {
+    public static abstract class SimpleGridEvidence<V> implements Evidence {
 
         // TODO: Make private:
         final int x, y;
@@ -143,6 +111,132 @@ public class GridLinearCode<V, E> extends ConcatenatedLinearCode<V, E> implement
                     .add("y", y)
                     .add("line", line)
                     .toString();
+        }
+    }
+
+    public static class SimpleLocalTest<V> extends BaseLocalTest<V, SimpleGridEvidence<V>> {
+
+        private final double falsePositiveProbability;
+        private final double rowSelectionProbability;
+
+        SimpleLocalTest(Constraint<V> rowConstraint, Constraint<V> columnConstraint, GridLinearCode<?, ?> code) {
+            this(rowConstraint, columnConstraint, code, optimalRowSelectionProbability(code));
+        }
+
+        private SimpleLocalTest(Constraint<V> rowConstraint, Constraint<V> columnConstraint, GridLinearCode<?, ?> code,
+                                double rowSelectionProbability) {
+            super(rowConstraint, columnConstraint, code);
+            int rowDistance = code.rowConstraint().distance();
+            int colDistance = code.columnConstraint().distance();
+
+            // TODO: Make sure rounding is handled correctly here...
+            this.rowSelectionProbability = rowSelectionProbability;
+            double colSelectionProbability = 1 - rowSelectionProbability;
+
+            falsePositiveProbability = Math.max(
+                    1 - colSelectionProbability * rowDistance / code.rowConstraint().length(),
+                    1 - rowSelectionProbability * colDistance / code.columnConstraint().length()
+            );
+        }
+
+        private static double optimalRowSelectionProbability(GridLinearCode<?, ?> code) {
+            double x = (double) code.rowConstraint().distance() * code.columnConstraint().length();
+            double y = (double) code.columnConstraint().distance() * code.rowConstraint().length();
+            return x / (x + y);
+        }
+
+        @Override
+        public double falsePositiveProbability() {
+            return falsePositiveProbability;
+        }
+
+        public double rowSelectionProbability() {
+            return rowSelectionProbability;
+        }
+
+        @Override
+        public SimpleGridEvidence<V> query(List<V> vector, Random random) {
+            return random.nextDouble() <= rowSelectionProbability
+                    ? query(vector, -1, random.nextInt(code().columnConstraint().length()))
+                    : query(vector, random.nextInt(code().rowConstraint().length()), -1);
+        }
+    }
+
+    public static class CompoundLocalTest<V> extends BaseLocalTest<V, RepeatedEvidence<SimpleGridEvidence<V>>> {
+
+        private final int rowSampleCount, columnSampleCount;
+        private final double falsePositiveProbability;
+
+        public CompoundLocalTest(Constraint<V> rowConstraint, Constraint<V> columnConstraint, GridLinearCode<?, ?> code,
+                                 double maxFalsePositiveProbability) {
+            this(rowConstraint, columnConstraint, code,
+                    samplesRequiredForDesiredConfidence(code.columnConstraint(), maxFalsePositiveProbability),
+                    samplesRequiredForDesiredConfidence(code.rowConstraint(), maxFalsePositiveProbability)
+            );
+        }
+
+        public CompoundLocalTest(Constraint<V> rowConstraint, Constraint<V> columnConstraint, GridLinearCode<?, ?> code,
+                                 int rowSampleCount, int columnSampleCount) {
+
+            super(rowConstraint, columnConstraint, code);
+            this.rowSampleCount = rowSampleCount;
+            this.columnSampleCount = columnSampleCount;
+            falsePositiveProbability = falsePositiveProbability(code, rowSampleCount, columnSampleCount);
+        }
+
+        // guaranteed to give a probability such that the proceeding method gives required samples <= [row|column]SampleCount:
+        static double falsePositiveProbability(GridLinearCode<?, ?> code, int rowSampleCount, int columnSampleCount) {
+            int width = code.rowConstraint().length();
+            int height = code.columnConstraint().length();
+            int goodColCount = width - code.rowConstraint().distance();
+            int goodRowCount = height - code.columnConstraint().distance();
+
+            // minimal log-probability (for bad vector) that we sample only good rows/columns, missing all the bad ones:
+            double logRowErrorProb = BinomialUtils.logBinomialCoefficientRatio(goodRowCount, height, rowSampleCount);
+            double logColErrorProb = BinomialUtils.logBinomialCoefficientRatio(goodColCount, width, columnSampleCount);
+
+            return Math.exp(Math.max(logRowErrorProb, logColErrorProb));
+        }
+
+        private static int samplesRequiredForDesiredConfidence(LinearCode<?, ?> lineCode, double maxFalsePositiveProbability) {
+            // TODO: Is there a more efficient way of calculating this?
+            int len = lineCode.length();
+            int goodSymbolCount = len - lineCode.distance();
+            double threshold = Math.log(maxFalsePositiveProbability);
+            while (Math.exp(threshold) > maxFalsePositiveProbability) {
+                threshold = Math.nextDown(threshold);
+            }
+            for (int k = 0; ; k++) {
+                if (BinomialUtils.logBinomialCoefficientRatio(goodSymbolCount, len, k) <= threshold) {
+                    return k;
+                }
+            }
+        }
+
+        public int rowSampleCount() {
+            return rowSampleCount;
+        }
+
+        public int columnSampleCount() {
+            return columnSampleCount;
+        }
+
+        @Override
+        public double falsePositiveProbability() {
+            return falsePositiveProbability;
+        }
+
+        @Override
+        public RepeatedEvidence<SimpleGridEvidence<V>> query(List<V> vector, Random random) {
+            int[] colChoice = BinomialUtils.sortedRandomChoice(code().rowConstraint().length(), columnSampleCount, random);
+            int[] rowChoice = BinomialUtils.sortedRandomChoice(code().columnConstraint().length(), rowSampleCount, random);
+
+            List<SimpleGridEvidence<V>> evidenceList = Stream.concat(
+                    Arrays.stream(colChoice).mapToObj(x -> query(vector, x, -1)),
+                    Arrays.stream(rowChoice).mapToObj(y -> query(vector, -1, y))
+            ).collect(ImmutableList.toImmutableList());
+
+            return new RepeatedEvidence<>(evidenceList);
         }
     }
 }

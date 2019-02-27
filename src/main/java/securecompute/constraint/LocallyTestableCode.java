@@ -48,12 +48,12 @@ public interface LocallyTestableCode<V> extends Code<V> {
         }
     }
 
-    class RepeatedLocalTest<V, S extends LocalTest.Evidence> implements LocalTest<V, RepeatedLocalTest.RepeatedEvidence<S>> {
+    class RepeatedLocalTest<V, S extends LocalTest.Evidence> implements LocalTest<V, RepeatedEvidence<S>> {
 
         private final LocalTest<V, S> singleTest;
         private final int repetitionCount;
 
-        public RepeatedLocalTest(LocalTest<V, S> singleTest, double maxFalsePositiveProbability) {
+        RepeatedLocalTest(LocalTest<V, S> singleTest, double maxFalsePositiveProbability) {
             this(singleTest, repetitionsRequiredForDesiredConfidence(singleTest, maxFalsePositiveProbability));
         }
 
@@ -96,22 +96,23 @@ public interface LocallyTestableCode<V> extends Code<V> {
             return new RepeatedEvidence<>(evidenceList);
         }
 
-        public static class RepeatedEvidence<S extends LocalTest.Evidence> implements LocalTest.Evidence {
+    }
 
-            private final List<S> evidenceList;
+    class RepeatedEvidence<S extends LocalTest.Evidence> implements LocalTest.Evidence {
 
-            public RepeatedEvidence(List<S> evidenceList) {
-                this.evidenceList = ImmutableList.copyOf(evidenceList);
-            }
+        private final List<S> evidenceList;
 
-            public List<S> evidenceList() {
-                return evidenceList;
-            }
+        public RepeatedEvidence(List<S> evidenceList) {
+            this.evidenceList = ImmutableList.copyOf(evidenceList);
+        }
 
-            @Override
-            public boolean isValid() {
-                return evidenceList.stream().allMatch(Evidence::isValid);
-            }
+        public List<S> evidenceList() {
+            return evidenceList;
+        }
+
+        @Override
+        public boolean isValid() {
+            return evidenceList.stream().allMatch(LocalTest.Evidence::isValid);
         }
     }
 }

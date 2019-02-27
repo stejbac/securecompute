@@ -6,10 +6,10 @@ import org.junit.jupiter.api.Test;
 import securecompute.algebra.Gf256;
 import securecompute.algebra.module.singleton.SingletonVectorSpace;
 import securecompute.constraint.AlgebraicConstraint;
+import securecompute.constraint.LocallyTestableCode.LocalTest;
 import securecompute.constraint.LocallyTestableCode.LocalTest.Evidence;
-import securecompute.constraint.LocallyTestableCode.RepeatedLocalTest.RepeatedEvidence;
+import securecompute.constraint.LocallyTestableCode.RepeatedEvidence;
 import securecompute.constraint.ZeroKnowledgeLocallyTestableProof.ZeroKnowledgeLocalTest;
-import securecompute.constraint.block.BlockLinearCode;
 import securecompute.constraint.cyclic.ReedSolomonCode;
 import securecompute.constraint.grid.GridLinearCode.SimpleGridEvidence;
 import securecompute.helper.LowDiscrepancyFakeRandom;
@@ -30,8 +30,9 @@ class ZeroKnowledgeGridProofTest {
     private static final Gf256 AES_FIELD = new Gf256(0b100011011, 0b11);
     private static final SingletonVectorSpace<Gf256.Element> BLOCK_SPACE = new SingletonVectorSpace<>(AES_FIELD);
 
-    private static final ReedSolomonCode<Gf256.Element> ROW_CODE = new ReedSolomonCode<>(128, 60, AES_FIELD);
-    private static final ReedSolomonCode<Gf256.Element> COL_CODE = new ReedSolomonCode<>(255, 60, AES_FIELD);
+    // These choices of k are optimal (minimising ZK test significance, followed by nonce size), for the given grid & witness dimensions:
+    private static final ReedSolomonCode<Gf256.Element> ROW_CODE = new ReedSolomonCode<>(128, 24, AES_FIELD);
+    private static final ReedSolomonCode<Gf256.Element> COL_CODE = new ReedSolomonCode<>(255, 52, AES_FIELD);
 
     private static final AlgebraicConstraint<Gf256.Element, Gf256.Element> ROW_MESSAGE_CONSTRAINT = algebraicConstraint(2, 1, 1,
             BLOCK_SPACE,
@@ -57,19 +58,15 @@ class ZeroKnowledgeGridProofTest {
 
     private static final List<List<Gf256.Element>> ENCODED_VALID_WITNESS = GRID_PROOF.encode(VALID_WITNESS);
 
-    private static final BlockLinearCode<Gf256.Element, Gf256.Element> TRIPLE_ROW_CODE = new BlockLinearCode<>(ROW_CODE, 3);
-
-    private static final List<List<Gf256.Element>> MINIMAL_WEIGHT_INVALID_ROW = TRIPLE_ROW_CODE.encode(
-            IntStream.range(0, 60)
-                    .mapToObj(i -> i == 59
-                            ? ImmutableList.of(AES_FIELD.exp(128), AES_FIELD.one(), AES_FIELD.zero())
-                            : ImmutableList.of(AES_FIELD.zero(), AES_FIELD.zero(), AES_FIELD.zero()))
+    private static final List<Gf256.Element> MINIMAL_WEIGHT_INVALID_COL = COL_CODE.pow(2).encode(
+            IntStream.range(0, 103)
+                    .mapToObj(i -> i == 102 ? AES_FIELD.one() : AES_FIELD.zero())
                     .collect(ImmutableList.toImmutableList())
     );
 
-    // Modify the last row, so that all the rows are good & a minimal number of (non-witness-intersecting) columns are bad:
+    // Modify the last parity column, so that all the columns are good & a minimal number of (non-witness-intersecting) rows are bad:
     private static final List<List<Gf256.Element>> MINIMAL_BAD_VECTOR_OF_ERRORS = Streams.mapWithIndex(ENCODED_VALID_WITNESS.stream(), (x, i) ->
-            i < 254 * 128 ? x : TRIPLE_ROW_CODE.symbolSpace().sum(x, MINIMAL_WEIGHT_INVALID_ROW.get((int) i % 128))
+            i % 128 < 127 ? x : ImmutableList.of(x.get(0), x.get(1), MINIMAL_WEIGHT_INVALID_COL.get((int) i / 128))
     ).collect(ImmutableList.toImmutableList());
 
     @Test
@@ -78,12 +75,13 @@ class ZeroKnowledgeGridProofTest {
         System.out.println(minErrorRate);
 
         assertEquals(minErrorRate, GRID_PROOF.localTestOfMaximalConfidence().falsePositiveProbability(), 1e-15);
-        assertEquals(59, GRID_PROOF.localTestOfMaximalConfidence().repetitionCount());
-        assertEquals((128 - 60) * (255 - 119), GRID_PROOF.localTest().distance());
+        assertEquals(51, GRID_PROOF.localTestOfMaximalConfidence().rowSampleCount());
+        assertEquals(23, GRID_PROOF.localTestOfMaximalConfidence().columnSampleCount());
+        assertEquals((128 - 24) * (255 - 103), GRID_PROOF.localTest().distance());
     }
 
     @Test
-    void localTestHasCorrectFalsePositiveRate() {
+    void simpleLocalTestHasCorrectFalsePositiveRate() {
         Random rnd = new LowDiscrepancyFakeRandom(12345);
 
         long passCount = Stream.generate(() -> GRID_PROOF.localTest().query(MINIMAL_BAD_VECTOR_OF_ERRORS, rnd))
@@ -93,6 +91,21 @@ class ZeroKnowledgeGridProofTest {
         double passRate = passCount / 1000.0;
 
         assertEquals(passRate, GRID_PROOF.localTest().falsePositiveProbability(), 0.002);
+    }
+
+    @Test
+    void compoundLocalTestHasCorrectFalsePositiveRate() {
+        Random rnd = new LowDiscrepancyFakeRandom(12345);
+        LocalTest<List<Gf256.Element>, ?> localTest = GRID_PROOF.localTest(0.5);
+
+        long passCount = Stream.generate(() -> localTest.query(MINIMAL_BAD_VECTOR_OF_ERRORS, rnd))
+                .limit(500)
+                .filter(Evidence::isValid)
+                .count();
+        double passRate = passCount / 500.0;
+
+        assertEquals(passRate, localTest.falsePositiveProbability(), 0.002);
+        assertTrue(localTest.falsePositiveProbability() < 0.5);
     }
 
     @Test
@@ -122,7 +135,7 @@ class ZeroKnowledgeGridProofTest {
     @Test
     void simulatedEvidenceHasExpectedProperties() {
         GRID_PROOF.getRandom().setSeed(3579);
-        ZeroKnowledgeGridProof<Gf256.Element, ?>.RepeatedLocalTest maxConfidenceTest = GRID_PROOF.localTestOfMaximalConfidence();
+        ZeroKnowledgeGridProof<Gf256.Element, ?>.CompoundLocalTest maxConfidenceTest = GRID_PROOF.localTestOfMaximalConfidence();
 
         RepeatedEvidence<? extends SimpleGridEvidence<?>> realEvidence = maxConfidenceTest.query(ENCODED_VALID_WITNESS, new Random(2468));
         RepeatedEvidence<? extends SimpleGridEvidence<?>> simulatedEvidence = maxConfidenceTest.simulate(new Random(2468));

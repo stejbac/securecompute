@@ -168,8 +168,8 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
 
     @Override
     public double minimumAllowedFalsePositiveProbability() {
-        int maxAllowedRepetitions = Math.min(maxIndependentRowCount, maxIndependentColumnCount);
-        return ZeroKnowledgeRepeatedLocalTest.minimumAllowedFalsePositiveProbability(localTest(), maxAllowedRepetitions);
+        return GridLinearCode.CompoundLocalTest.falsePositiveProbability(puncturedTopLayerOuterCode,
+                maxIndependentRowCount, maxIndependentColumnCount);
     }
 
     @Override
@@ -178,13 +178,12 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
     }
 
     @Override
-    public RepeatedLocalTest localTest(double maxFalsePositiveProbability) {
-        int maxAllowedRepetitions = Math.min(maxIndependentRowCount, maxIndependentColumnCount);
-        return new RepeatedLocalTest(maxFalsePositiveProbability, maxAllowedRepetitions);
+    public CompoundLocalTest localTest(double maxFalsePositiveProbability) {
+        return new CompoundLocalTest(maxFalsePositiveProbability, maxIndependentRowCount, maxIndependentColumnCount);
     }
 
     @Override
-    public RepeatedLocalTest localTestOfMaximalConfidence() {
+    public CompoundLocalTest localTestOfMaximalConfidence() {
         return localTest(minimumAllowedFalsePositiveProbability());
     }
 
@@ -197,49 +196,51 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
 
         @Override
         public SimpleGridEvidence<List<V>> simulate(Random random) {
-            return new RepeatedLocalTest().simulate(random).evidenceList().get(0);
+            List<List<V>> fullyErasedTestVector = Collections.nCopies(length(), null);
+            SimpleGridEvidence<List<V>> blankEvidence = query(fullyErasedTestVector, random);
+            return fakeRepeatedEvidence(this, new RepeatedEvidence<>(ImmutableList.of(blankEvidence)))
+                    .evidenceList().get(0);
         }
     }
 
-    public class RepeatedLocalTest extends ZeroKnowledgeRepeatedLocalTest<List<V>, SimpleGridEvidence<List<V>>> {
+    public class CompoundLocalTest extends GridLinearCode.CompoundLocalTest<List<V>>
+            implements ZeroKnowledgeLocalTest<List<V>, RepeatedEvidence<SimpleGridEvidence<List<V>>>> {
 
-        RepeatedLocalTest() {
-            super(localTest(), 1);
-        }
-
-        RepeatedLocalTest(double maxFalsePositiveProbability, int maxAllowedRepetitions) {
-            super(localTest(), maxFalsePositiveProbability, maxAllowedRepetitions);
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public SimpleLocalTest singleTest() {
-            return (SimpleLocalTest) super.singleTest();
+        CompoundLocalTest(double maxFalsePositiveProbability, int maxRowSampleCount, int maxColumnSampleCount) {
+            super(rowConstraint(), columnConstraint(), puncturedTopLayerOuterCode, maxFalsePositiveProbability);
+            if (rowSampleCount() > maxRowSampleCount) {
+                throw new IllegalArgumentException("Row sample count exceeds maximum guaranteeing zero knowledge");
+            }
+            if (columnSampleCount() > maxColumnSampleCount) {
+                throw new IllegalArgumentException("Column sample count exceeds maximum guaranteeing zero knowledge");
+            }
         }
 
         @Override
         public RepeatedEvidence<SimpleGridEvidence<List<V>>> simulate(Random random) {
-
             List<List<V>> fullyErasedTestVector = Collections.nCopies(length(), null);
-            RepeatedEvidence<SimpleGridEvidence<List<V>>> evidence = query(fullyErasedTestVector, random);
-
-            SortedMap<Integer, List<List<V>>> sampledRows = new TreeMap<>();
-            SortedMap<Integer, List<List<V>>> sampledColumns = new TreeMap<>();
-
-            evidence.evidenceList().forEach(e -> {
-                if (e.y >= 0) {
-                    sampledRows.put(e.y, null);
-                } else {
-                    sampledColumns.put(e.x, null);
-                }
-            });
-
-            fillInFakeRowAndColumnSamples(sampledRows, sampledColumns);
-
-            return new RepeatedEvidence<>(evidence.evidenceList().stream()
-                    .map(e -> singleTest().evidence(e.x, e.y, e.y >= 0 ? sampledRows.get(e.y) : sampledColumns.get(e.x)))
-                    .collect(ImmutableList.toImmutableList()));
+            return fakeRepeatedEvidence(this, query(fullyErasedTestVector, random));
         }
+    }
+
+    private RepeatedEvidence<SimpleGridEvidence<List<V>>> fakeRepeatedEvidence(GridLinearCode.BaseLocalTest<List<V>, ?> localTest,
+                                                                               RepeatedEvidence<SimpleGridEvidence<List<V>>> blankEvidence) {
+        SortedMap<Integer, List<List<V>>> sampledRows = new TreeMap<>();
+        SortedMap<Integer, List<List<V>>> sampledColumns = new TreeMap<>();
+
+        blankEvidence.evidenceList().forEach(e -> {
+            if (e.y >= 0) {
+                sampledRows.put(e.y, null);
+            } else {
+                sampledColumns.put(e.x, null);
+            }
+        });
+
+        fillInFakeRowAndColumnSamples(sampledRows, sampledColumns);
+
+        return new RepeatedEvidence<>(blankEvidence.evidenceList().stream()
+                .map(e -> localTest.evidence(e.x, e.y, e.y >= 0 ? sampledRows.get(e.y) : sampledColumns.get(e.x)))
+                .collect(ImmutableList.toImmutableList()));
     }
 
     private void fillInFakeRowAndColumnSamples(SortedMap<Integer, List<List<V>>> rows, SortedMap<Integer, List<List<V>>> columns) {

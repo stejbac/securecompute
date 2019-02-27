@@ -22,7 +22,7 @@ public interface ZeroKnowledgeLocallyTestableProof<V> extends LocallyTestablePro
     }
 
     abstract class ZeroKnowledgeRepeatedLocalTest<V, S extends LocalTest.Evidence> extends RepeatedLocalTest<V, S>
-            implements ZeroKnowledgeLocalTest<V, RepeatedLocalTest.RepeatedEvidence<S>> {
+            implements ZeroKnowledgeLocalTest<V, RepeatedEvidence<S>> {
 
         protected ZeroKnowledgeRepeatedLocalTest(LocalTest<V, S> singleTest, int repetitionCount) {
             super(singleTest, repetitionCount);

@@ -9,7 +9,6 @@ import securecompute.constraint.LocallyTestableProof;
 import securecompute.constraint.MultiplicativeLinearCode;
 import securecompute.constraint.block.BlockConstraint;
 import securecompute.constraint.block.BlockLinearCode;
-import securecompute.constraint.grid.GridLinearCode.SimpleGridEvidence;
 
 import java.util.Collections;
 import java.util.List;
@@ -123,8 +122,9 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
     }
 
     @Override
-    public RepeatedLocalTest<List<V>, SimpleGridEvidence<List<V>>> localTest(double maxFalsePositiveProbability) {
-        return new RepeatedLocalTest<>(localTest(), maxFalsePositiveProbability);
+    public GridLinearCode.CompoundLocalTest<List<V>> localTest(double maxFalsePositiveProbability) {
+        return new GridLinearCode.CompoundLocalTest<>(rowConstraint(), columnConstraint(), topLayerOuterCode,
+                maxFalsePositiveProbability);
     }
 
     private static class LineConstraint<V, E> implements Constraint<List<V>> {

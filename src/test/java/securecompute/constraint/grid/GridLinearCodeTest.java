@@ -1,14 +1,16 @@
 package securecompute.constraint.grid;
 
 import com.google.common.collect.ImmutableList;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import securecompute.algebra.BooleanField;
 import securecompute.algebra.polynomial.FieldPolynomialRing;
 import securecompute.algebra.polynomial.Polynomial;
+import securecompute.constraint.LocallyTestableCode.LocalTest;
 import securecompute.constraint.LocallyTestableCode.LocalTest.Evidence;
-import securecompute.constraint.LocallyTestableCode.RepeatedLocalTest;
 import securecompute.constraint.cyclic.PuncturedPolynomialCode;
+import securecompute.constraint.grid.GridLinearCode.CompoundLocalTest;
 import securecompute.helper.LowDiscrepancyFakeRandom;
 
 import java.util.List;
@@ -85,21 +87,32 @@ class GridLinearCodeTest {
         assertTrue(distance < MINIMAL_BAD_VECTOR_OF_ERRORS.stream().filter(b -> b).count());
     }
 
-    @Test
-    void localTestHasCorrectFalsePositiveRate() {
-        Random rnd = new LowDiscrepancyFakeRandom(12345);
+    private static LocalTest<?, ?>[] testLocalTests() {
+        return new LocalTest<?, ?>[]{
+                GRID_CODE.localTest(),
+                GRID_CODE.localTest(0.7), // 1 row sample,  1 column sample
+                GRID_CODE.localTest(0.4)  // 2 row samples, 3 column samples
+        };
+    }
 
-        long passCount = Stream.generate(() -> GRID_CODE.localTest().query(MINIMAL_BAD_VECTOR_OF_ERRORS, rnd))
-                .limit(5000)
+    @ParameterizedTest
+    @MethodSource("testLocalTests")
+    void localTestsHaveCorrectFalsePositiveRates(LocalTest<Boolean, ?> localTest) {
+        // We can't use 'LowDiscrepancyFakeRandom' here - it has extreme bias when '[row|column]SampleCount' > 1.
+        // TODO: Improve 'LowDiscrepancyFakeRandom' - it really just needs to be low _collision_ (with otherwise uncorrelated outputs).
+        Random rnd = new Random(12345);
+
+        long passCount = Stream.generate(() -> localTest.query(MINIMAL_BAD_VECTOR_OF_ERRORS, rnd))
+                .limit(20000)
                 .filter(Evidence::isValid)
                 .count();
-        double passRate = passCount / 5000.0;
+        double passRate = passCount / 20000.0;
 
-        assertEquals(passRate, GRID_CODE.localTest().falsePositiveProbability(), 0.0005);
+        assertEquals(passRate, localTest.falsePositiveProbability(), 0.005);
     }
 
     @Test
-    void localTestHasCorrectRowSelectionRate() {
+    void simpleLocalTestHasCorrectRowSelectionRate() {
         Random rnd = new LowDiscrepancyFakeRandom(12345);
 
         long rowCount = Stream.generate(() -> GRID_CODE.localTest().query(MINIMAL_BAD_VECTOR_OF_ERRORS, rnd))
@@ -118,19 +131,14 @@ class GridLinearCodeTest {
     }
 
     @Test
-    void compoundLocalTestCanHaveCryptographicStrength() {
-        Assumptions.assumeTrue(GRID_CODE.localTest().falsePositiveProbability() > 0.707); // ~ 0.5 ** 0.5
-        Assumptions.assumeTrue(GRID_CODE.localTest().falsePositiveProbability() < 0.841); // ~ 0.5 ** 0.25
+    void highStrengthCompoundLocalTestSamplesExhaustively() {
+        CompoundLocalTest<Boolean> compoundTest = GRID_CODE.localTest(0x1.0p-256);
 
-        RepeatedLocalTest<Boolean, ?> compoundTest = GRID_CODE.localTest(0x1.0p-256);
-
-        assertTrue(compoundTest.singleTest().falsePositiveProbability() < 0.841);
-        assertTrue(compoundTest.repetitionCount() > 512);
-        assertTrue(compoundTest.repetitionCount() < 1024);
-        assertTrue(compoundTest.falsePositiveProbability() <= 0x1.0p-256);
+        assertEquals(7 - 2, compoundTest.rowSampleCount());
+        assertEquals(23 - 6, compoundTest.columnSampleCount());
+        assertEquals(0.0, compoundTest.falsePositiveProbability());
 
         Random rnd = new Random(23456);
-        assertEquals(compoundTest.repetitionCount(), compoundTest.query(MINIMAL_BAD_VECTOR_OF_ERASURES, rnd).evidenceList().size());
         assertFalse(compoundTest.query(MINIMAL_BAD_VECTOR_OF_ERASURES, rnd).isValid());
         assertFalse(compoundTest.query(MINIMAL_BAD_VECTOR_OF_ERRORS, rnd).isValid());
     }
