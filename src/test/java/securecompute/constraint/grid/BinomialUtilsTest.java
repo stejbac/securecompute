@@ -8,6 +8,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -15,13 +16,20 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.lang.Math.log;
+import static java.math.MathContext.DECIMAL128;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static securecompute.constraint.grid.BinomialUtils.logBinomialCoefficientRatio;
 import static securecompute.constraint.grid.BinomialUtils.sortedRandomChoice;
 
 class BinomialUtilsTest {
+
+    private static final BigDecimal _0 = BigDecimal.ZERO;
+    private static final BigDecimal _1 = BigDecimal.ONE;
+    private static final BigDecimal _2 = BigDecimal.valueOf(2);
+    private static final BigDecimal E = new BigDecimal("2.7182818284590452353602874713526624977572", DECIMAL128);
+    private static final BigDecimal LOG_2 = new BigDecimal("0.6931471805599453094172321214581765680755", DECIMAL128);
+    private static final BigDecimal HALF_PI = new BigDecimal("3.1415926535897932384626433832795028841972").divide(_2, DECIMAL128);
 
     private static final int[][] TEST_BINOMIAL_COEFFICIENTS = {
             {1},
@@ -49,22 +57,27 @@ class BinomialUtilsTest {
     }
 
     @Test
-    void logGammaFunctionHasSmallUlpError() {
-        // TODO: Prevent cumulative rounding errors in log summation - probably have much better actual accuracy than 11 ulps...
-        double logGamma = 0;
-        for (int i = 1; i < 1000; logGamma += log(i++)) {
+    void logGammaHasSmallUlpError() {
+        // A sanity check of 'logApprox'; if it's accurate at 1, e and e**20, then it's probably accurate everywhere in between:
+        assumeTrue(isCloseToZero(logApprox(_1)));
+        assumeTrue(isCloseToZero(logApprox(E).subtract(_1)));
+        assumeTrue(isCloseToZero(logApprox(E.pow(20)).scaleByPowerOfTen(-1).subtract(_2)));
+
+//        double maxAbsUlpError = 0.0;
+        BigDecimal logGamma = _0;
+        for (int i = 1; i < 65536; logGamma = logGamma.add(logApprox(i++))) {
             double x = BinomialUtils.logGamma(i);
-            int ulps = 0;
-            while (x < logGamma) {
-                x = Math.nextUp(x);
-                ulps++;
-            }
-            while (x > logGamma) {
-                x = Math.nextDown(x);
-                ulps--;
-            }
-            assertTrue(ulps >= -3, "logGamma(" + i + ") lower bound");
-            assertTrue(ulps <= 11, "logGamma(" + i + ") upper bound");
+            double ulp = Math.ulp(x);
+
+            double ulpError = BigDecimal.valueOf((long) (x / ulp))
+                    .subtract(logGamma.multiply(_2.pow(-Math.getExponent(ulp)), DECIMAL128))
+                    .doubleValue();
+
+//            if (Math.abs(ulpError) > maxAbsUlpError) {
+//                System.out.println(ulpError + " @ " + i);
+//                maxAbsUlpError = Math.abs(ulpError);
+//            }
+            assertEquals(0.0, ulpError, 2.4, "logGamma(" + i + ") error in ulps");
         }
     }
 
@@ -112,5 +125,33 @@ class BinomialUtilsTest {
         }
 
         assertEquals(TEST_BINOMIAL_COEFFICIENTS[n][k], choices.size());
+    }
+
+    private static BigDecimal sqrtApprox(BigDecimal x) {
+        BigDecimal y0 = BigDecimal.valueOf(Math.sqrt(x.doubleValue()));
+        return x.divide(y0, DECIMAL128).add(y0, DECIMAL128).divide(_2, DECIMAL128);
+    }
+
+    private static BigDecimal agmApprox(BigDecimal x, BigDecimal y) {
+        for (int i = 0; i < 10; i++) {
+            BigDecimal gm = sqrtApprox(x.multiply(y, DECIMAL128));
+            x = x.add(y, DECIMAL128).divide(_2, DECIMAL128);
+            y = gm;
+        }
+        return x;
+    }
+
+    private static BigDecimal logApprox(BigDecimal x) {
+        int m = 64 - Math.getExponent(x.doubleValue());
+        BigDecimal y = _2.pow(Math.max(2 - m, 0)).divide(_2.pow(Math.max(m - 2, 0)).multiply(x, DECIMAL128), DECIMAL128);
+        return HALF_PI.divide(agmApprox(_1, y), DECIMAL128).subtract(LOG_2.multiply(BigDecimal.valueOf(m)), DECIMAL128);
+    }
+
+    private static BigDecimal logApprox(long n) {
+        return n == 1 ? _0 : logApprox(BigDecimal.valueOf(n));
+    }
+
+    private static boolean isCloseToZero(BigDecimal x) {
+        return x.compareTo(_0) == 0 || x.scale() - x.precision() > 29;
     }
 }
