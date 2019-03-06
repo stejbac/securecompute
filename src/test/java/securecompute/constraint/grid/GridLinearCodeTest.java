@@ -98,9 +98,8 @@ class GridLinearCodeTest {
     @ParameterizedTest
     @MethodSource("testLocalTests")
     void localTestsHaveCorrectFalsePositiveRates(LocalTest<Boolean, ?> localTest) {
-        // We can't use 'LowDiscrepancyFakeRandom' here - it has extreme bias when '[row|column]SampleCount' > 1.
-        // TODO: Improve 'LowDiscrepancyFakeRandom' - it really just needs to be low _collision_ (with otherwise uncorrelated outputs).
-        Random rnd = new Random(12345);
+        // Use fieldsPerBound > 2 in RNG to prevent bias, as [row|column]SampleCount > 2 for at least one test case:
+        Random rnd = new LowDiscrepancyFakeRandom(12345, 3);
 
         long passCount = Stream.generate(() -> localTest.query(MINIMAL_BAD_VECTOR_OF_ERRORS, rnd))
                 .limit(20000)
@@ -108,7 +107,7 @@ class GridLinearCodeTest {
                 .count();
         double passRate = passCount / 20000.0;
 
-        assertEquals(passRate, localTest.falsePositiveProbability(), 0.005);
+        assertEquals(passRate, localTest.falsePositiveProbability(), 0.0015);
     }
 
     @Test
