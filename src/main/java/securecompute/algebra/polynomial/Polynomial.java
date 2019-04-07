@@ -8,6 +8,8 @@ import securecompute.algebra.module.ModuleElement;
 
 import java.util.List;
 
+// TODO: Consider making this convertible to a 'PolynomialExpression', e.g. with an 'asExpression()' method:
+
 public interface Polynomial<E> extends EuclideanDomainElement<Polynomial<E>>, ModuleElement<Polynomial<E>, E> {
 
     @Override

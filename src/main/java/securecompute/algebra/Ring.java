@@ -2,6 +2,8 @@ package securecompute.algebra;
 
 import com.google.common.collect.Streams;
 
+import java.util.stream.Stream;
+
 public interface Ring<E> extends AbelianGroup<E> {
 
     E fromInt(int n);
@@ -18,7 +20,11 @@ public interface Ring<E> extends AbelianGroup<E> {
     E product(E left, E right);
 
     default E product(Iterable<E> elements) {
-        return Streams.stream(elements).reduce(one(), this::product);
+        return product(Streams.stream(elements));
+    }
+
+    default E product(Stream<E> elements) {
+        return elements.reduce(one(), this::product);
     }
 
     default E power(E elt, int exponent) {

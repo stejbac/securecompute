@@ -38,11 +38,9 @@ public class ReedSolomonCode<E> extends PuncturedPolynomialCode<E> implements Mu
         E primitiveElement = field.getPrimitiveElement();
         FieldPolynomialRing<E> polynomialRing = new FieldPolynomialRing<>(field);
 
-        // TODO: Consider changing Ring & AbelianGroup interface not to require an intermediate list like this:
-        List<Polynomial<E>> linearFactors = IntStream.range(0, k)
+        Stream<Polynomial<E>> linearFactors = IntStream.range(0, k)
                 .mapToObj(i -> field.power(primitiveElement, i))
-                .map(x -> polynomialRing.polynomial(field.negative(x), field.one()))
-                .collect(ImmutableList.toImmutableList());
+                .map(x -> polynomialRing.polynomial(field.negative(x), field.one()));
 
         Polynomial<E> checkPolynomial = polynomialRing.product(linearFactors);
         return polynomialRing.one().shift(n + k - 1).div(checkPolynomial);
