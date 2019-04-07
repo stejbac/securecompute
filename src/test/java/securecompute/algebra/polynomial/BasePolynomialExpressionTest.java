@@ -15,6 +15,8 @@ class BasePolynomialExpressionTest {
     private static final Constant<Integer> MINUS_1 = constant(-1);
     private static final Constant<Integer> _1 = constant(1), _2 = constant(2), _3 = constant(3);
     private static final Variable<Integer> X = variable(0), Y = variable(1);
+    private static final Constant<Long> _1L = constant(1L);
+    private static final Variable<Long> XL = variable(0), YL = variable(1);
 
     @Test
     void additionSubtractionChainProducesLowDepthTree() {
@@ -44,5 +46,23 @@ class BasePolynomialExpressionTest {
         assertEquals(1, p.evaluate(RING, i -> 1).intValue());
         assertEquals(0, p.evaluate(RING, i -> i).intValue());
         assertEquals(76, p.evaluate(RING, i -> i == 0 ? 10 : 5).intValue());
+    }
+
+    @Test
+    void mapIndicesProducesCorrectResult() {
+        PolynomialExpression<Integer> p = X.add(Y).multiply(X.subtract(Y, RING)).add(_1);
+        PolynomialExpression<Integer> q = Y.add(X).multiply(Y.subtract(X, RING)).add(_1);
+        PolynomialExpression<Integer> result = p.mapIndices(i -> 1 - i);
+
+        assertEquals(q, result);
+    }
+
+    @Test
+    void mapVariablesAndConstantsProducesCorrectResult() {
+        PolynomialExpression<Integer> p = X.multiply(Y).add(_1);
+        PolynomialExpression<Long> q = _1L.add(XL).multiply(_1L.add(YL)).add(_1L);
+        PolynomialExpression<Long> result = p.mapVariablesAndConstants(i -> _1L.add(variable(i)), i -> constant((long) i));
+
+        assertEquals(q, result);
     }
 }

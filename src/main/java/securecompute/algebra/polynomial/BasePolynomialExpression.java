@@ -5,6 +5,11 @@ import com.google.common.collect.ImmutableList;
 import securecompute.algebra.Ring;
 
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.IntFunction;
+import java.util.function.IntUnaryOperator;
+
+// TODO: Consider using @AutoOneOf instead of @AutoValue for each subclass here, to simplify.
 
 public abstract class BasePolynomialExpression<E> implements PolynomialExpression<E> {
 
@@ -32,6 +37,11 @@ public abstract class BasePolynomialExpression<E> implements PolynomialExpressio
     @Override
     public List<PolynomialExpression<E>> subTerms() {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public PolynomialExpression<E> mapIndices(IntUnaryOperator indexMapping) {
+        return mapVariablesAndConstants(i -> variable(indexMapping.applyAsInt(i)), BasePolynomialExpression::constant);
     }
 
     public static <E> Constant<E> constant(E value) {
@@ -71,6 +81,13 @@ public abstract class BasePolynomialExpression<E> implements PolynomialExpressio
 
         @Override
         public abstract E constantValue();
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <F> PolynomialExpression<F> mapVariablesAndConstants(IntFunction<PolynomialExpression<F>> variableMapping,
+                                                                    Function<E, PolynomialExpression<F>> constantMapping) {
+            return constantMapping.apply(constantValue());
+        }
     }
 
     @AutoValue
@@ -87,6 +104,14 @@ public abstract class BasePolynomialExpression<E> implements PolynomialExpressio
         public Sum<E> add(PolynomialExpression<E> other) {
             return sum(ImmutableList.<PolynomialExpression<E>>builderWithExpectedSize(subTerms().size() + 1)
                     .addAll(subTerms()).add(other).build());
+        }
+
+        @Override
+        public <F> PolynomialExpression<F> mapVariablesAndConstants(IntFunction<PolynomialExpression<F>> variableMapping,
+                                                                    Function<E, PolynomialExpression<F>> constantMapping) {
+            return sum(subTerms().stream()
+                    .map(p -> p.mapVariablesAndConstants(variableMapping, constantMapping))
+                    .collect(ImmutableList.toImmutableList()));
         }
     }
 
@@ -105,6 +130,14 @@ public abstract class BasePolynomialExpression<E> implements PolynomialExpressio
             return product(ImmutableList.<PolynomialExpression<E>>builderWithExpectedSize(subTerms().size() + 1)
                     .addAll(subTerms()).add(other).build());
         }
+
+        @Override
+        public <F> PolynomialExpression<F> mapVariablesAndConstants(IntFunction<PolynomialExpression<F>> variableMapping,
+                                                                    Function<E, PolynomialExpression<F>> constantMapping) {
+            return product(subTerms().stream()
+                    .map(p -> p.mapVariablesAndConstants(variableMapping, constantMapping))
+                    .collect(ImmutableList.toImmutableList()));
+        }
     }
 
     @AutoValue
@@ -116,5 +149,12 @@ public abstract class BasePolynomialExpression<E> implements PolynomialExpressio
 
         @Override
         public abstract int variableIndex();
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <F> PolynomialExpression<F> mapVariablesAndConstants(IntFunction<PolynomialExpression<F>> variableMapping,
+                                                                    Function<E, PolynomialExpression<F>> constantMapping) {
+            return variableMapping.apply(variableIndex());
+        }
     }
 }

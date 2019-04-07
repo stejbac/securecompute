@@ -64,7 +64,8 @@ class ShortenedLinearCode<V, E> implements LinearCode<V, E> {
     }
 
     private List<V> zeroExtend(List<V> vector) {
-        return ImmutableList.<V>builder()
+        // TODO: This is very similar to PuncturedPolynomialCode.paddedCoefficients - DEDUPLICATE:
+        return ImmutableList.<V>builderWithExpectedSize(vector.size() + shortenNumber)
                 .addAll(vector)
                 .addAll(Collections.nCopies(shortenNumber, symbolSpace().zero()))
                 .build();

@@ -3,7 +3,9 @@ package securecompute.algebra.polynomial;
 import securecompute.algebra.Ring;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.IntUnaryOperator;
 
 public interface PolynomialExpression<E> {
 
@@ -30,8 +32,13 @@ public interface PolynomialExpression<E> {
             case VARIABLE:
                 return symbolMapping.apply(variableIndex());
         }
-        throw new AssertionError(); // unreachable
+        throw new AssertionError(expressionType()); // unreachable
     }
+
+    PolynomialExpression<E> mapIndices(IntUnaryOperator indexMapping);
+
+    <F> PolynomialExpression<F> mapVariablesAndConstants(IntFunction<PolynomialExpression<F>> variableMapping,
+                                                         Function<E, PolynomialExpression<F>> constantMapping);
 
     // TODO: Add pretty printer (here or to BasePolynomialExpression).
 }
