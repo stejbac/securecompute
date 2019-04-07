@@ -173,7 +173,7 @@ class ZeroKnowledgeGridProofTest {
         SimpleGridEvidence<?> realEvidence = simpleTest.query(ENCODED_VALID_WITNESS, new Random(2468));
         SimpleGridEvidence<?> simulatedEvidence = simpleTest.simulate(new Random(2468));
 
-        // Real vs. simulated sampled rows/column is the same, given the same random seed...
+        // Real vs. simulated sampled row/column is the same, given the same random seed...
         assertAll(() -> {
             assertEquals(realEvidence.getClass(), simulatedEvidence.getClass());
             assertEquals(realEvidence.x, simulatedEvidence.x);
