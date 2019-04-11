@@ -137,9 +137,15 @@ public abstract class ArithmeticCircuit<E> {
     public static class Gate<E> {
 
         private final AlgebraicFunction<E> function;
+        private final String name;
+
+        public Gate(AlgebraicFunction<E> function, String name) {
+            this.function = Objects.requireNonNull(function);
+            this.name = name;
+        }
 
         public Gate(AlgebraicFunction<E> function) {
-            this.function = Objects.requireNonNull(function);
+            this(function, null);
         }
 
         public AlgebraicFunction<E> function() {
@@ -148,7 +154,7 @@ public abstract class ArithmeticCircuit<E> {
 
         @Override
         public String toString() {
-            return getClass().getSimpleName() + "@" + Integer.toHexString(hashCode());
+            return name != null ? name : getClass().getSimpleName() + "@" + Integer.toHexString(hashCode());
         }
 
         private E matchInputs(E x, E y) {

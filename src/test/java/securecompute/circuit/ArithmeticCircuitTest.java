@@ -161,39 +161,14 @@ class ArithmeticCircuitTest implements WithDefaultField<Gf256.Element> {
 
         AlgebraicFunction<Gf256.Element> addRoundKeyFn = AlgebraicFunction.vectorFn(AlgebraicFunction.sumFn(AES_FIELD, 2), 16);
 
-//        AlgebraicFunction<Gf256.Element> addRoundKeyFn = AlgebraicFunction.builder(AES_FIELD)
-//                .degree(1)
-//                .inputLength(32)
-//                .parityCheckTerms(IntStream.range(0, 16)
-//                        .mapToObj(i -> X0.add(X16).mapIndices(j -> i + j))
-//                        .collect(ImmutableList.toImmutableList())
-//                )
-//                .simpleBaseFn()
-//                .build();
-
         // NOTE: This takes the state bytes to be in row-major order; standard AES places them in column-major order.
         ArithmeticCircuit<Gf256.Element> aesRoundCircuit = ArithmeticCircuit.builder(AES_FIELD)
                 .maximumFanOut(1)
                 .maximumFanIn(1)
                 .addGate(g0 = new InputPort<>(AES_FIELD, 32))
-                .addGate(g1 = new Gate<Gf256.Element>(subBytesFn) {
-                    @Override
-                    public String toString() {
-                        return "SubBytes";
-                    }
-                })
-                .addGate(g2 = new Gate<Gf256.Element>(mixColumnsFn) {
-                    @Override
-                    public String toString() {
-                        return "MixColumns";
-                    }
-                })
-                .addGate(g3 = new Gate<Gf256.Element>(addRoundKeyFn) {
-                    @Override
-                    public String toString() {
-                        return "AddRoundKey";
-                    }
-                })
+                .addGate(g1 = new Gate<>(subBytesFn, "SubBytes"))
+                .addGate(g2 = new Gate<>(mixColumnsFn, "MixColumns"))
+                .addGate(g3 = new Gate<>(addRoundKeyFn, "AddRoundKey"))
                 .addGate(g4 = new OutputPort<>(AES_FIELD, 16))
                 // wire up inputs to SubBytes gate:
                 .addWires(g0, g1, 16)
