@@ -55,7 +55,7 @@ public abstract class ArithmeticCircuit<E> {
             startGates.remove(gate);
             sortedGates.add(gate);
 
-            for (Gate<E> successor : graph.successors(gate)) {
+            for (Gate<E> successor : ImmutableList.copyOf(graph.successors(gate))) {
                 graph.removeEdge(gate, successor);
                 if (graph.inDegree(successor) == 0) {
                     startGates.add(successor);

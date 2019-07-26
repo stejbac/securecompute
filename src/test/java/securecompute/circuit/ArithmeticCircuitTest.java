@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static securecompute.algebra.polynomial.BasePolynomialExpression.constant;
 import static securecompute.algebra.polynomial.BasePolynomialExpression.variable;
@@ -61,6 +62,30 @@ class ArithmeticCircuitTest implements WithDefaultField<Gf256.Element> {
     @Override
     public Gf256 getDefaultStructure() {
         return AES_FIELD;
+    }
+
+    @Test
+    void testTopologicalSortOfGates() {
+        AlgebraicFunction<Gf256.Element> idFn = AlgebraicFunction.sumFn(AES_FIELD, 1);
+        Gate<Gf256.Element> g0, g1, g2, g3, g4;
+
+        ArithmeticCircuit<?> circuit = ArithmeticCircuit.builder(AES_FIELD)
+                .addGate(g0 = new ArithmeticCircuit.InputPort<>(AES_FIELD, 1))
+                .addGate(g3 = new Gate<>(idFn, "C"))
+                .addGate(g2 = new Gate<>(idFn, "B"))
+                .addGate(g1 = new Gate<>(idFn, "A"))
+                .addGate(g4 = new ArithmeticCircuit.OutputPort<>(AES_FIELD, 1))
+                //
+                .addWire(g0, 0, g1, 0)
+                .addWire(g1, 0, g2, 0)
+                .addWire(g1, 0, g3, 0)
+                .addWire(g2, 0, g3, 0)
+                .addWire(g3, 0, g4, 0)
+                //
+                .build();
+
+        assertDoesNotThrow(circuit::gatesInTopologicalOrder);
+        assertEquals(ImmutableList.of(g0, g1, g2, g3, g4), circuit.gatesInTopologicalOrder());
     }
 
     @Test
