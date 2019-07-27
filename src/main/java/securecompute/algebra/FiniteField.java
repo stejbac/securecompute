@@ -1,6 +1,7 @@
 package securecompute.algebra;
 
 import java.util.Random;
+import java.util.stream.Stream;
 
 public interface FiniteField<E> extends Field<E> {
 
@@ -27,4 +28,9 @@ public interface FiniteField<E> extends Field<E> {
     }
 
     E sampleUniformly(Random random);
+
+    default Stream<E> getElements() {
+        E a = getPrimitiveElement();
+        return Stream.concat(Stream.of(zero()), Stream.iterate(one(), x -> product(a, x))).limit(size());
+    }
 }
