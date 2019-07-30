@@ -21,11 +21,13 @@ public class Aes {
 
     public static final Gf256 AES_FIELD = new Gf256(0b100011011, 0b11);
 
-    private static final BasePolynomialExpression.Variable<Gf256.Element>
+    static final BasePolynomialExpression.Variable<Gf256.Element>
             X0 = variable(0), X1 = variable(1), X2 = variable(2), X3 = variable(3),
-            X4 = variable(4), X5 = variable(5), X6 = variable(6), X7 = variable(7);
+            X4 = variable(4), X5 = variable(5), X6 = variable(6);
 
-    private static BasePolynomialExpression.Constant<Gf256.Element> c(long n) {
+    private static final BasePolynomialExpression.Variable<Gf256.Element> X7 = variable(7);
+
+    static BasePolynomialExpression.Constant<Gf256.Element> c(long n) {
         return constant(AES_FIELD.element(n));
     }
 
@@ -113,12 +115,11 @@ public class Aes {
                 .build();
     }
 
-    // visible for tests
     static AlgebraicFunction<Gf256.Element> aesSBox() {
         return aesSBoxCircuit().asFunction();
     }
 
-    private static PolynomialExpression<Gf256.Element> mixColumnCheckTerm(long... coefficients) {
+    static PolynomialExpression<Gf256.Element> mixColumnCheckTerm(long... coefficients) {
         Stream<PolynomialExpression<Gf256.Element>> inputTerms = Streams.mapWithIndex(Arrays.stream(coefficients),
                 (n, i) -> scale(n, variable((int) i)));
 

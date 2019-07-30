@@ -76,7 +76,7 @@ public class Gf256 implements FiniteField<Gf256.Element> {
         if (elt.value == 0) {
             throw new ArithmeticException("Logarithm of zero");
         }
-        return (int) logTable[(int) elt.value & 0xFF] & 0xFF;
+        return (int) logTable[(int) elt.value & 0xff] & 0xff;
     }
 
     @Override
@@ -116,7 +116,7 @@ public class Gf256 implements FiniteField<Gf256.Element> {
     }
 
     public Element element(long value) {
-        return elements[(int) value & 0xFF];
+        return elements[(int) value & 0xff];
     }
 
     public final class Element implements FieldElement<Element> {

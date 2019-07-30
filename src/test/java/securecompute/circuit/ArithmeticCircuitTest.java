@@ -48,7 +48,13 @@ public class ArithmeticCircuitTest {
         List<E> zeroSyndrome = Collections.nCopies(function.parityCheckTerms().size(), function.field().zero());
 
         for (List<E> inputVector : allTuples) {
-            List<E> allSymbols = function.baseFn().apply(inputVector);
+            List<E> allSymbols;
+            try {
+                allSymbols = function.baseFn().apply(inputVector);
+            } catch (RuntimeException e) {
+                // Function is undefined for the given input - skip.
+                continue;
+            }
 
             assertEquals(inputVector, allSymbols.subList(0, function.inputLength()));
             assertEquals(zeroSyndrome, function.parityCheck(allSymbols), inputVector.toString());
