@@ -158,7 +158,7 @@ class ZeroKnowledgeGridProofTest {
         Map<Long, ?> sampledElements = simulatedEvidenceList.stream()
                 .flatMap(this::sampledElements)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (elt1, elt2) -> {
-                    assertTrue(elt1.equals(elt2));
+                    assertEquals(elt1, elt2);
                     return elt1;
                 }));
 

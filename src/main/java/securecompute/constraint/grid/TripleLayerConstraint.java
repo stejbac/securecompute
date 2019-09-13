@@ -35,13 +35,13 @@ public class TripleLayerConstraint<V, E> extends GridConstraint<List<V>> {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "RedundantSuppression"})
     public LineConstraint<V, E> rowConstraint() {
         return (LineConstraint<V, E>) super.rowConstraint();
     }
 
     @Override
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "RedundantSuppression"})
     public LineConstraint<V, E> columnConstraint() {
         return (LineConstraint<V, E>) super.columnConstraint();
     }

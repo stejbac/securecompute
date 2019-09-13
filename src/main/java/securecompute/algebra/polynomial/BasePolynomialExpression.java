@@ -83,7 +83,6 @@ public abstract class BasePolynomialExpression<E> implements PolynomialExpressio
         public abstract E constantValue();
 
         @Override
-        @SuppressWarnings("unchecked")
         public <F> PolynomialExpression<F> mapVariablesAndConstants(IntFunction<PolynomialExpression<F>> variableMapping,
                                                                     Function<E, PolynomialExpression<F>> constantMapping) {
             return constantMapping.apply(constantValue());
@@ -151,7 +150,6 @@ public abstract class BasePolynomialExpression<E> implements PolynomialExpressio
         public abstract int variableIndex();
 
         @Override
-        @SuppressWarnings("unchecked")
         public <F> PolynomialExpression<F> mapVariablesAndConstants(IntFunction<PolynomialExpression<F>> variableMapping,
                                                                     Function<E, PolynomialExpression<F>> constantMapping) {
             return variableMapping.apply(variableIndex());

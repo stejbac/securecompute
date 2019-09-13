@@ -104,11 +104,11 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
     }
 
     List<List<V>> rowPaddingBlock() {
-        return Collections.nCopies(columnConstraint().length(), Collections.<V>emptyList());
+        return Collections.nCopies(columnConstraint().length(), Collections.emptyList());
     }
 
     List<List<V>> columnPaddingBlock() {
-        return Collections.nCopies(rowConstraint().length(), Collections.<V>emptyList());
+        return Collections.nCopies(rowConstraint().length(), Collections.emptyList());
     }
 
     @Override

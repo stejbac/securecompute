@@ -21,7 +21,7 @@ public class BlockAlgebraicConstraint<V, E> extends BlockConstraint<V> implement
     }
 
     @Override
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "RedundantSuppression"})
     public AlgebraicConstraint<V, E> columnConstraint() {
         return (AlgebraicConstraint<V, E>) super.columnConstraint();
     }

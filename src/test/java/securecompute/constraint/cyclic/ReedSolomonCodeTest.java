@@ -121,7 +121,7 @@ class ReedSolomonCodeTest<E> {
 
     @Test
     void codeIsUnshortened() {
-        assertTrue(code.shortenNumber() == 0);
+        assertEquals(0, code.shortenNumber());
     }
 
     @Test

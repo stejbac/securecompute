@@ -28,13 +28,13 @@ public abstract class ConcatenatedAlgebraicConstraint<V, E> extends Concatenated
     }
 
     @Override
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "RedundantSuppression"})
     public AlgebraicConstraint<V, E> rowConstraint() {
         return (AlgebraicConstraint<V, E>) super.rowConstraint();
     }
 
     @Override
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "RedundantSuppression"})
     public AlgebraicConstraint<List<V>, E> outerConstraint() {
         return (AlgebraicConstraint<List<V>, E>) super.outerConstraint();
     }

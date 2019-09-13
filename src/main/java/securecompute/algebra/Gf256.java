@@ -10,8 +10,8 @@ import java.util.Random;
 
 public class Gf256 implements FiniteField<Gf256.Element> {
 
-    private final byte logTable[] = new byte[256];
-    private final byte expTable[] = new byte[510];
+    private final byte[] logTable = new byte[256];
+    private final byte[] expTable = new byte[510];
     private final Element[] elements = new Element[256];
 
     public Gf256(int primitivePolynomial) {
