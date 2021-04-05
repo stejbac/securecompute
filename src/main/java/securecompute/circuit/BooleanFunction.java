@@ -68,7 +68,7 @@ public abstract class BooleanFunction extends AlgebraicFunction<Boolean> {
     public abstract List<PolynomialExpression<Boolean>> parityCheckTerms();
 
     @AutoValue.Builder
-    interface Builder extends AlgebraicFunction.Builder<Boolean, Builder, BooleanFunction> {
+    public interface Builder extends AlgebraicFunction.Builder<Boolean, Builder, BooleanFunction> {
 
         @Override
         Builder baseFn(Function<List<Boolean>, List<Boolean>> baseFn);

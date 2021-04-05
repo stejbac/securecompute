@@ -2,6 +2,7 @@ package securecompute.circuit.cryptography;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import securecompute.algebra.FiniteField;
 import securecompute.algebra.Gf256;
 import securecompute.algebra.polynomial.PolynomialExpression;
 import securecompute.circuit.AlgebraicFunction;
@@ -318,14 +319,14 @@ public class Groestl {
                 .build();
     }
 
-    private static AlgebraicFunction<Gf256.Element> checkZeroFn() {
-        List<Gf256.Element> expectedInput = ImmutableList.of(AES_FIELD.zero());
-        return AlgebraicFunction.builder(AES_FIELD).degree(1).inputLength(1).auxiliaryLength(0).outputLength(0)
+    static <E> AlgebraicFunction<E> checkZeroFn(FiniteField<E> field) {
+        List<E> expectedInput = ImmutableList.of(field.zero());
+        return AlgebraicFunction.builder(field).degree(1).inputLength(1).auxiliaryLength(0).outputLength(0)
                 .baseFn(v -> {
                     Preconditions.checkArgument(expectedInput.equals(v), "disable flag must be cleared");
                     return expectedInput;
                 })
-                .parityCheckTerms(ImmutableList.of(X0.add(X1)))
+                .parityCheckTerms(ImmutableList.of(variable(0)))
                 .build();
     }
 
@@ -334,6 +335,7 @@ public class Groestl {
         AlgebraicFunction<Gf256.Element> isLastFn = equalsConstantFn(AES_FIELD.element(0x0a));
         AlgebraicFunction<Gf256.Element> productFn = AlgebraicFunction.vectorFn(AlgebraicFunction.productFn(AES_FIELD, 2), 129);
         AlgebraicFunction<Gf256.Element> sumFn = AlgebraicFunction.vectorFn(AlgebraicFunction.sumFn(AES_FIELD, 2), 129);
+        AlgebraicFunction<Gf256.Element> checkZeroFn = checkZeroFn(AES_FIELD);
         Gate<Gf256.Element> g0, g1, g2, g3, g4, g5, g6;
 
         return ArithmeticCircuit.builder(AES_FIELD).maximumFanOut(130).maximumFanIn(1)
@@ -342,9 +344,9 @@ public class Groestl {
                 .addGate(g2 = new Gate<>(isLastFn, "IsLastRound"))
                 .addGate(g3 = new Gate<>(productFn, "MaskState"))
                 .addGate(g4 = new Gate<>(sumFn, "AddMaskedState"))
-                .addGate(g5 = new Gate<>(checkZeroFn(), "CheckZero"))
+                .addGate(g5 = new Gate<>(checkZeroFn, "CheckZero"))
                 .addGate(g6 = new OutputPort<>(AES_FIELD, 194))
-                // wire up disable/done flag input to CheckFalse gate:
+                // wire up disable/done flag input to CheckZero gate:
                 .addWire(g0, g5)
                 // wire up message, round number & current state inputs to EncryptionRound gate:
                 .addWires(g0, g1, 129)
@@ -375,6 +377,7 @@ public class Groestl {
         AlgebraicFunction<Gf256.Element> isLastFn = equalsConstantFn(AES_FIELD.element(0x0e));
         AlgebraicFunction<Gf256.Element> productFn = AlgebraicFunction.vectorFn(AlgebraicFunction.productFn(AES_FIELD, 2), 257);
         AlgebraicFunction<Gf256.Element> sumFn = AlgebraicFunction.vectorFn(AlgebraicFunction.sumFn(AES_FIELD, 2), 257);
+        AlgebraicFunction<Gf256.Element> checkZeroFn = checkZeroFn(AES_FIELD);
         Gate<Gf256.Element> g0, g1, g2, g3, g4, g5, g6;
 
         // TODO: Similar to above method - consider de-duplicating some of gate wiring logic here:
@@ -384,9 +387,9 @@ public class Groestl {
                 .addGate(g2 = new Gate<>(isLastFn, "IsLastRound"))
                 .addGate(g3 = new Gate<>(productFn, "MaskStateWide"))
                 .addGate(g4 = new Gate<>(sumFn, "AddMaskedStateWide"))
-                .addGate(g5 = new Gate<>(checkZeroFn(), "CheckZero"))
+                .addGate(g5 = new Gate<>(checkZeroFn, "CheckZero"))
                 .addGate(g6 = new OutputPort<>(AES_FIELD, 386))
-                // wire up disable/done flag input to CheckFalse gate:
+                // wire up disable/done flag input to CheckZero gate:
                 .addWire(g0, g5)
                 // wire up message, round number & current state inputs to EncryptionRoundWide gate:
                 .addWires(g0, g1, 257)
