@@ -104,15 +104,22 @@ public abstract class ArithmeticCircuit<E> {
 
     private List<PolynomialExpression<E>> parityCheckTerms() {
         ImmutableList.Builder<PolynomialExpression<E>> terms = ImmutableList.builder();
+        Map<Gate<E>, Integer> offsetMap = new HashMap<>(gatesInTopologicalOrder().size());
         int offset = 0;
         for (Gate<E> gate : gatesInTopologicalOrder()) {
             int finalOffset = offset;
+            offsetMap.put(gate, offset);
             // noinspection ConstantConditions
             terms.addAll(Lists.transform(gate.function().parityCheckTerms(), p -> p.mapIndices(i -> i + finalOffset)));
             offset += gate.function().length();
         }
         for (Wire<E> wire : network().edges()) {
-            BasePolynomialExpression.Variable<E> fromVar = variable(wire.fromIndex()), toVar = variable(wire.toIndex());
+            AlgebraicFunction<E> fromFn = wire.fromGate().function();
+            int fromOffset = offsetMap.get(wire.fromGate()) + fromFn.inputLength() + fromFn.auxiliaryLength();
+            int toOffset = offsetMap.get(wire.toGate());
+
+            BasePolynomialExpression.Variable<E> fromVar = variable(fromOffset + wire.fromIndex());
+            BasePolynomialExpression.Variable<E> toVar = variable(toOffset + wire.toIndex());
             terms.add(fromVar.subtract(toVar, field()));
         }
         return terms.build();
@@ -262,8 +269,8 @@ public abstract class ArithmeticCircuit<E> {
         }
 
         public Builder<E> addWire(Gate<E> fromGate, int fromIndex, Gate<E> toGate, int toIndex) {
-            Preconditions.checkPositionIndex(fromIndex, fromGate.function().outputLength(), "fromIndex");
-            Preconditions.checkPositionIndex(toIndex, toGate.function().inputLength(), "toIndex");
+            Preconditions.checkElementIndex(fromIndex, fromGate.function().outputLength(), "fromIndex");
+            Preconditions.checkElementIndex(toIndex, toGate.function().inputLength(), "toIndex");
 
             ((MutableNetwork<Gate<E>, Wire<E>>) network()).addEdge(fromGate, toGate,
                     new AutoValue_ArithmeticCircuit_Wire<>(fromGate, fromIndex, toGate, toIndex));
