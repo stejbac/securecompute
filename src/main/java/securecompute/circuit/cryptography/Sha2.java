@@ -1,6 +1,7 @@
 package securecompute.circuit.cryptography;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.Booleans;
 import securecompute.algebra.BooleanField;
 import securecompute.algebra.polynomial.BasePolynomialExpression;
 import securecompute.algebra.polynomial.PolynomialExpression;
@@ -52,31 +53,41 @@ public class Sha2 {
 
     // visible for tests
     static BooleanFunction sumFn(int n, int nGroup) {
-        // FIXME: This should do big-endian addition, so that the circuits below can accept message/state/IV blocks in bit-for-bit order:
-        return BooleanFunction.builder().degree(2).inputLength(n * 2).auxiliaryLength(0).outputLength(n)
+        return BooleanFunction.builder().degree(2).inputLength(n * 2).auxiliaryLength(n).outputLength(n)
                 .parityCheckTerms(sumParityCheckTerms(n, nGroup))
                 .baseFn(list -> {
-                    ImmutableList.Builder<Boolean> builder = ImmutableList.<Boolean>builderWithExpectedSize(n * 3).addAll(list);
+                    boolean[] result = new boolean[n * 4];
                     boolean a, b, c = false;
-                    for (int i = 0; i < n; i++) {
-                        builder.add((a = list.get(i)) ^ (b = list.get(i + n)) ^ c);
-                        c = (i + 1) % nGroup != 0 && (a ^ c) & (b ^ c) ^ c;
+                    for (int i = 1; i <= n; i++) {
+                        result[n - i] = a = list.get(n - i);
+                        result[2 * n - i] = b = list.get(2 * n - i);
+                        result[2 * n + i - 1] = c;
+                        result[4 * n - i] = a ^ b ^ c;
+                        c = i % nGroup != 0 && (a ^ c) & (b ^ c) ^ c;
                     }
-                    return builder.build();
+                    return ImmutableList.copyOf(Booleans.asList(result));
                 })
                 .build();
     }
 
     private static List<PolynomialExpression<Boolean>> sumParityCheckTerms(int n, int nGroup) {
-        ImmutableList.Builder<PolynomialExpression<Boolean>> builder = ImmutableList.builderWithExpectedSize(n);
+        ImmutableList.Builder<PolynomialExpression<Boolean>> builder = ImmutableList.builderWithExpectedSize(2 * n);
         BasePolynomialExpression<Boolean> c = constant(false);
-        for (int i = 0; i < n; i++) {
+        for (int i = 1; i <= n; i++) {
             BasePolynomialExpression<Boolean> a, b, d;
-            a = variable(i);
-            b = variable(i + n);
-            d = variable(i + n * 2);
+            a = variable(n - i);
+            b = variable(2 * n - i);
+            d = variable(2 * n + i - 1);
+            builder.add(c.add(d));
+            c = i % nGroup != 0 ? a.add(d).multiply(b.add(d)).add(d) : constant(false);
+        }
+        for (int i = 1; i <= n; i++) {
+            BasePolynomialExpression<Boolean> a, b, d;
+            a = variable(n - i);
+            b = variable(2 * n - i);
+            c = variable(2 * n + i - 1);
+            d = variable(4 * n - i);
             builder.add(a.add(b).add(c).add(d));
-            c = (i + 1) % nGroup != 0 ? a.add(d).multiply(b.add(d)).add(a).add(b).add(d) : constant(false);
         }
         return builder.build();
     }
@@ -96,7 +107,6 @@ public class Sha2 {
     }
 
     private static BooleanFunction sigmaDeltaFn(int n, int i, int j, int k) {
-        // FIXME: This should do big-endian rotation, so that the circuits below can accept message/state/IV blocks in bit-for-bit order:
         return BooleanFunction.builder().degree(1).inputLength(n)
                 .parityCheckTerms(sigmaDeltaParityCheckTerms(n, i, j, k))
                 .simpleBaseFn()
@@ -105,19 +115,18 @@ public class Sha2 {
 
     private static List<PolynomialExpression<Boolean>> sigmaDeltaParityCheckTerms(int n, int i, int j, int k) {
         ImmutableList.Builder<PolynomialExpression<Boolean>> builder = ImmutableList.builderWithExpectedSize(n);
-        for (int l = 0; l < n; l++) {
+        for (int l = n; l < 2 * n; l++) {
             BasePolynomialExpression<Boolean> x, y, z, sum;
-            x = variable((l + i) % n);
-            y = variable((l + j) % n);
-            z = variable((l + k) % n);
-            sum = l >= 2 * n - k ? x.add(y) : x.add(y).add(z);
-            builder.add(sum.add(variable(n + l)));
+            x = variable((l - i) % n);
+            y = variable((l - j) % n);
+            z = variable((l - k) % n);
+            sum = l < k ? x.add(y) : x.add(y).add(z);
+            builder.add(sum.add(variable(l)));
         }
         return builder.build();
     }
 
     private static BooleanFunction roundConstFn(int n, long[] roundConsts) {
-        // FIXME: This should output big-endian words, so that the circuits below can accept message/state/IV blocks in bit-for-bit order:
         return BooleanFunction.builder().degree(1).inputLength(roundConsts.length)
                 .parityCheckTerms(roundConstParityCheckTerms(n, roundConsts))
                 .simpleBaseFn()
@@ -127,7 +136,7 @@ public class Sha2 {
     private static List<PolynomialExpression<Boolean>> roundConstParityCheckTerms(int n, long[] roundConsts) {
         ImmutableList.Builder<PolynomialExpression<Boolean>> builder = ImmutableList.builderWithExpectedSize(n);
         for (int i = 0; i < n; i++) {
-            long mask = 1L << i;
+            long mask = 1L << (n - i - 1);
             BasePolynomialExpression<Boolean> sum = sum(IntStream.range(0, roundConsts.length)
                     .filter(j -> (roundConsts[j] & mask) != 0)
                     .mapToObj(BasePolynomialExpression::<Boolean>variable)
