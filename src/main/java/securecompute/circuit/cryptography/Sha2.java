@@ -55,12 +55,12 @@ public class Sha2 {
     static BooleanFunction sumFn(int n, int nGroup) {
         return BooleanFunction.builder().degree(2).inputLength(n * 2).auxiliaryLength(n).outputLength(n)
                 .parityCheckTerms(sumParityCheckTerms(n, nGroup))
-                .baseFn(list -> {
+                .baseFn(v -> {
                     boolean[] result = new boolean[n * 4];
                     boolean a, b, c = false;
                     for (int i = 1; i <= n; i++) {
-                        result[n - i] = a = list.get(n - i);
-                        result[2 * n - i] = b = list.get(2 * n - i);
+                        result[n - i] = a = v.get(n - i);
+                        result[2 * n - i] = b = v.get(2 * n - i);
                         result[2 * n + i - 1] = c;
                         result[4 * n - i] = a ^ b ^ c;
                         c = i % nGroup != 0 && (a ^ c) & (b ^ c) ^ c;
@@ -93,16 +93,18 @@ public class Sha2 {
     }
 
     private static BooleanFunction choiceFn() {
-        return BooleanFunction.builder().degree(2).inputLength(3)
+        return BooleanFunction.builder().degree(2).inputLength(3).auxiliaryLength(0).outputLength(1)
                 .parityCheckTerms(ImmutableList.of(X1.add(X2).multiply(X0).add(X2).add(X3)))
-                .simpleBaseFn()
+                .baseFn(v -> ImmutableList.of(v.get(0), v.get(1), v.get(2),
+                        v.get(0) ? v.get(1) : v.get(2)))
                 .build();
     }
 
     private static BooleanFunction majorityFn() {
-        return BooleanFunction.builder().degree(2).inputLength(3)
+        return BooleanFunction.builder().degree(2).inputLength(3).auxiliaryLength(0).outputLength(1)
                 .parityCheckTerms(ImmutableList.of(X0.add(X1).multiply(X0.add(X2)).add(X0).add(X3)))
-                .simpleBaseFn()
+                .baseFn(v -> ImmutableList.of(v.get(0), v.get(1), v.get(2),
+                        v.get(0) ? v.get(1) || v.get(2) : v.get(1) && v.get(2)))
                 .build();
     }
 
@@ -258,8 +260,8 @@ public class Sha2 {
     public static ArithmeticCircuit<Boolean> rawSha2StepCircuit(boolean isWide) {
         int n = isWide ? 64 : 32;
         int numRounds = isWide ? 80 : 64;
-        BooleanFunction sumFn = sumFn(n * 16, n);
-        BooleanFunction andFn = (BooleanFunction) BooleanFunction.vectorFn(BooleanFunction.AND, n * 16);
+        BooleanFunction sumFn = sumFn(n * 8, n);
+        BooleanFunction choiceFn = (BooleanFunction) BooleanFunction.vectorFn(choiceFn(), n * 16);
         BooleanFunction roundFn = (BooleanFunction) roundCircuit(isWide).asFunction();
         BooleanFunction keyScheduleFn = (BooleanFunction) keyScheduleCircuit(isWide).asFunction();
         BooleanFunction checkFalseFn = (BooleanFunction) checkZeroFn(BooleanField.INSTANCE);
@@ -269,31 +271,33 @@ public class Sha2 {
                 .addGate(g0 = new ArithmeticCircuit.InputPort<>(BooleanField.INSTANCE, n * 32 + numRounds + 1))
                 .addGate(g1 = new ArithmeticCircuit.Gate<>(keyScheduleFn, "KeySchedule"))
                 .addGate(g2 = new ArithmeticCircuit.Gate<>(roundFn, "EncryptionRound"))
-                .addGate(g3 = new ArithmeticCircuit.Gate<>(andFn, "MaskState"))
-                .addGate(g4 = new ArithmeticCircuit.Gate<>(sumFn, "AddMaskedState"))
+                .addGate(g3 = new ArithmeticCircuit.Gate<>(sumFn, "AddSavedState"))
+                .addGate(g4 = new ArithmeticCircuit.Gate<>(choiceFn, "ChooseState"))
                 .addGate(g5 = new ArithmeticCircuit.Gate<>(checkFalseFn, "CheckFalse"))
                 .addGate(g6 = new ArithmeticCircuit.OutputPort<>(BooleanField.INSTANCE, n * 32 + numRounds + 1))
                 // wire up disable/done flag input to CheckFalse gate:
                 .addWire(g0, g5)
                 // wire up message & round constant selector inputs to KeySchedule gate:
                 .addWires(g0, g1, n * 16 + numRounds)
-                // fan out KeySchedule gate (@ first selector bit) to disable/done flag output & (first half of) MaskState gate:
+                // fan out KeySchedule gate (@ first selector bit) to disable/done flag output & (first third of) ChooseState gate:
                 .addWire(g1, n * 16, g6, 0)
-                .addWires(g1, n * 16, 0, g3, 0, 1, n * 16)
+                .addWires(g1, n * 16, 0, g4, 0, 1, n * 16)
                 // wire up KeySchedule gate to message & round constant selector outputs:
                 .addWires(g1, g6, n * 16 + numRounds)
                 // wire up KeySchedule gate (@ round key) to EncryptionRound gate:
                 .addWires(g1, g2, n)
                 // wire up current state inputs to EncryptionRound gate:
                 .addWires(g0, g2, n * 8)
-                // wire up EncryptionRound gate (@ new state), saved state inputs & MaskState gate to AddMaskedState gate:
-                .addWires(g2, g4, n * 8)
-                .addWires(g0, g4, n * 8)
-                .addWires(g3, g4, n * 16)
-                // fan out (flipped) saved state inputs & EncryptionRound gate (@ new state) to MaskState gate:
-                .addWires(g0, n * 24 + numRounds + 1, g3, n * 16, n * 8)
-                .addWires(g2, 0, g3, n * 24, n * 8)
-                // wire up AddMaskedState gate to new & saved state outputs:
+                // wire up EncryptionRound gate (@ new state) & saved state inputs to AddSavedState gate:
+                .addWires(g2, g3, n * 8)
+                .addWires(g0, g3, n * 8)
+                // fan out (two copies of) AddSavedState gate to (middle third of) ChooseState gate:
+                .addWires(g3, g4, n * 8)
+                .addWires(g3, 0, g4, n * 24, n * 8)
+                // fan out EncryptionRound gate (@ new state) & saved state inputs to (last third of) ChooseState gate:
+                .addWires(g2, 0, g4, n * 32, n * 8)
+                .addWires(g0, n * 24 + numRounds + 1, g4, n * 40, n * 8)
+                // wire up ChooseState gate to new & saved state outputs:
                 .addWires(g4, g6, n * 16)
                 .build();
     }
