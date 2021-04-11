@@ -2,13 +2,15 @@ package securecompute.helper;
 
 import securecompute.algebra.Ring;
 
+import java.math.BigInteger;
+
 public interface WithDefaultRing<E> extends Ring<E> {
 
     Ring<E> getDefaultStructure();
 
     @Override
-    default E fromInt(int n) {
-        return getDefaultStructure().fromInt(n);
+    default E fromBigInteger(BigInteger n) {
+        return getDefaultStructure().fromBigInteger(n);
     }
 
     @Override
@@ -42,7 +44,7 @@ public interface WithDefaultRing<E> extends Ring<E> {
     }
 
     @Override
-    default E power(E elt, int exponent) {
+    default E power(E elt, BigInteger exponent) {
         return getDefaultStructure().power(elt, exponent);
     }
 }

@@ -1,5 +1,6 @@
 package securecompute.algebra;
 
+import java.math.BigInteger;
 import java.util.Objects;
 
 public class QuotientField<E> implements Field<QuotientField<E>.Coset> {
@@ -13,8 +14,8 @@ public class QuotientField<E> implements Field<QuotientField<E>.Coset> {
     }
 
     @Override
-    public Coset fromInt(int n) {
-        return coset(baseRing.fromInt(n));
+    public Coset fromBigInteger(BigInteger n) {
+        return coset(baseRing.fromBigInteger(n));
     }
 
     @Override

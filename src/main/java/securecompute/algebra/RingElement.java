@@ -1,5 +1,7 @@
 package securecompute.algebra;
 
+import java.math.BigInteger;
+
 public interface RingElement<E> extends AbelianGroupElement<E> {
 
     @Override
@@ -39,7 +41,11 @@ public interface RingElement<E> extends AbelianGroupElement<E> {
         return getRing().product(cast(), other);
     }
 
-    default E pow(int exponent) {
+    default E pow(long exponent) {
+        return getRing().power(cast(), exponent);
+    }
+
+    default E pow(BigInteger exponent) {
         return getRing().power(cast(), exponent);
     }
 

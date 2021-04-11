@@ -4,11 +4,13 @@ import com.google.common.base.Strings;
 import securecompute.algebra.polynomial.FieldPolynomialRing;
 import securecompute.algebra.polynomial.Polynomial;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Random;
 
 public class Gf256 implements FiniteField<Gf256.Element> {
+    private static final BigInteger SIZE = BigInteger.valueOf(256);
 
     private final byte[] logTable = new byte[256];
     private final byte[] expTable = new byte[510];
@@ -57,8 +59,8 @@ public class Gf256 implements FiniteField<Gf256.Element> {
     }
 
     @Override
-    public int size() {
-        return 256;
+    public BigInteger size() {
+        return SIZE;
     }
 
     @Override
@@ -93,8 +95,8 @@ public class Gf256 implements FiniteField<Gf256.Element> {
     }
 
     @Override
-    public Element fromInt(int n) {
-        return element(n & 1);
+    public Element fromBigInteger(BigInteger n) {
+        return element(n.intValue() & 1);
     }
 
     @Override

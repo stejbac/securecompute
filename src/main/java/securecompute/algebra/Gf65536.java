@@ -1,9 +1,11 @@
 package securecompute.algebra;
 
+import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Random;
 
 public class Gf65536 implements FiniteField<Gf65536.Element> {
+    private static final BigInteger SIZE = BigInteger.valueOf(65536);
 
     private final Gf256 baseField;
     private final Gf256.Element a, b;
@@ -26,8 +28,8 @@ public class Gf65536 implements FiniteField<Gf65536.Element> {
     }
 
     @Override
-    public int size() {
-        return 65536;
+    public BigInteger size() {
+        return SIZE;
     }
 
     @Override
@@ -49,8 +51,8 @@ public class Gf65536 implements FiniteField<Gf65536.Element> {
     }
 
     @Override
-    public Element fromInt(int n) {
-        return element(baseField.fromInt(n), baseField.zero());
+    public Element fromBigInteger(BigInteger n) {
+        return element(baseField.fromBigInteger(n), baseField.zero());
     }
 
     @Override

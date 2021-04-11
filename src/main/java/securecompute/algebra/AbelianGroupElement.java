@@ -1,5 +1,7 @@
 package securecompute.algebra;
 
+import java.math.BigInteger;
+
 public interface AbelianGroupElement<E> {
 
     AbelianGroup<E> getAbelianGroup();
@@ -16,5 +18,13 @@ public interface AbelianGroupElement<E> {
 
     default E negate() {
         return getAbelianGroup().negative(cast());
+    }
+
+    default E multiply(long k) {
+        return getAbelianGroup().product(cast(), k);
+    }
+
+    default E multiply(BigInteger k) {
+        return getAbelianGroup().product(cast(), k);
     }
 }

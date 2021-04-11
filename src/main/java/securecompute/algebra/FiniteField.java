@@ -1,11 +1,16 @@
 package securecompute.algebra;
 
+import java.math.BigInteger;
 import java.util.Random;
 import java.util.stream.Stream;
 
 public interface FiniteField<E> extends Field<E> {
 
-    int size();
+    BigInteger size();
+
+    default long sizeAsLong() {
+        return size().min(BigInteger.valueOf(Long.MAX_VALUE)).longValue();
+    }
 
     E getPrimitiveElement();
 
@@ -31,6 +36,6 @@ public interface FiniteField<E> extends Field<E> {
 
     default Stream<E> getElements() {
         E a = getPrimitiveElement();
-        return Stream.concat(Stream.of(zero()), Stream.iterate(one(), x -> product(a, x))).limit(size());
+        return Stream.concat(Stream.of(zero()), Stream.iterate(one(), x -> product(a, x))).limit(sizeAsLong());
     }
 }

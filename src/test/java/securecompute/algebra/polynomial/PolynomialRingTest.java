@@ -21,7 +21,7 @@ class PolynomialRingTest implements WithDefaultPolynomialRing<Integer> {
         assertAll(
                 () -> assertEquals("0", zero().toString()),
                 () -> assertEquals("1", one().toString()),
-                () -> assertEquals("-1", fromInt(-1).toString()),
+                () -> assertEquals("-1", fromLong(-1).toString()),
                 () -> assertEquals("0 + 1*X", polynomial(0, 1).toString()),
                 () -> assertEquals("1 + 0*X + 1*X^2", polynomial(1, 0, 1).toString()),
                 () -> assertEquals("(-1) + (-3)*X + 0*X^2 + 10*X^3", polynomial(-1, -3, 0, 10).toString())
@@ -31,7 +31,7 @@ class PolynomialRingTest implements WithDefaultPolynomialRing<Integer> {
     @Test
     void testAdd() {
         assertAll(
-                () -> assertEquals(zero(), fromInt(-1).add(one())),
+                () -> assertEquals(zero(), fromLong(-1).add(one())),
                 () -> assertEquals(zero(), polynomial(0, -1).add(polynomial(0, 1))),
                 () -> assertEquals(polynomial(1, 0, 2),
                         polynomial(1, 1).add(polynomial(0, -1, 2)))
@@ -56,7 +56,7 @@ class PolynomialRingTest implements WithDefaultPolynomialRing<Integer> {
         assertAll(
                 () -> assertEquals(one(), zero().pow(0)),
                 () -> assertEquals(zero(), zero().pow(1)),
-                () -> assertEquals(fromInt(64), fromInt(2).pow(6)),
+                () -> assertEquals(fromLong(64), fromLong(2).pow(6)),
                 () -> assertEquals(polynomial(1), polynomial(1, 1).pow(0)),
                 () -> assertEquals(polynomial(1, 1), polynomial(1, 1).pow(1)),
                 () -> assertEquals(polynomial(1, 2, 1), polynomial(1, 1).pow(2)),

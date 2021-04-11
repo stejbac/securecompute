@@ -5,17 +5,19 @@ import com.google.common.collect.Streams;
 import securecompute.algebra.polynomial.FieldPolynomialRing;
 import securecompute.algebra.polynomial.Polynomial;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.IntStream;
 
 public enum BooleanField implements FiniteField<Boolean> {
-
     INSTANCE;
 
+    private static final BigInteger SIZE = BigInteger.valueOf(2);
+
     @Override
-    public int size() {
-        return 2;
+    public BigInteger size() {
+        return SIZE;
     }
 
     @Override
@@ -29,8 +31,8 @@ public enum BooleanField implements FiniteField<Boolean> {
     }
 
     @Override
-    public Boolean fromInt(int n) {
-        return (n & 1) == 1;
+    public Boolean fromBigInteger(BigInteger n) {
+        return n.testBit(0);
     }
 
     @Override

@@ -2,6 +2,8 @@ package securecompute.helper;
 
 import securecompute.algebra.Field;
 
+import java.math.BigInteger;
+
 public interface WithDefaultField<E> extends WithDefaultRing<E>, Field<E> {
 
     @Override
@@ -23,7 +25,7 @@ public interface WithDefaultField<E> extends WithDefaultRing<E>, Field<E> {
     }
 
     @Override
-    default E power(E elt, int exponent) {
+    default E power(E elt, BigInteger exponent) {
         return getDefaultStructure().power(elt, exponent);
     }
 }

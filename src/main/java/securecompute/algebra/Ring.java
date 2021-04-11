@@ -2,19 +2,24 @@ package securecompute.algebra;
 
 import com.google.common.collect.Streams;
 
+import java.math.BigInteger;
 import java.util.stream.Stream;
 
 public interface Ring<E> extends AbelianGroup<E> {
 
-    E fromInt(int n);
+    default E fromLong(long n) {
+        return fromBigInteger(BigInteger.valueOf(n));
+    }
+
+    E fromBigInteger(BigInteger n);
 
     @Override
     default E zero() {
-        return fromInt(0);
+        return fromLong(0);
     }
 
     default E one() {
-        return fromInt(1);
+        return fromLong(1);
     }
 
     E product(E left, E right);
@@ -27,16 +32,20 @@ public interface Ring<E> extends AbelianGroup<E> {
         return elements.reduce(one(), this::product);
     }
 
-    default E power(E elt, int exponent) {
-        if (exponent < 0) {
+    default E power(E elt, long exponent) {
+        return power(elt, BigInteger.valueOf(exponent));
+    }
+
+    default E power(E elt, BigInteger exponent) {
+        if (exponent.signum() < 0) {
             throw new ArithmeticException("Negative exponent");
         }
         E acc = null;
-        while (exponent > 0) {
-            if ((exponent & 1) == 1) {
+        for (int i = 0, len = exponent.bitLength(); i < len; i++) {
+            if (exponent.testBit(i)) {
                 acc = acc != null ? product(acc, elt) : elt;
             }
-            if ((exponent /= 2) > 0) {
+            if (i < len - 1) {
                 elt = product(elt, elt);
             }
         }

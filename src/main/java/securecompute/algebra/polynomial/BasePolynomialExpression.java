@@ -65,7 +65,7 @@ public abstract class BasePolynomialExpression<E> implements PolynomialExpressio
     }
 
     public Sum<E> subtract(PolynomialExpression<E> other, Ring<E> ring) {
-        return add(constant(ring.fromInt(-1)).multiply(other));
+        return add(constant(ring.fromLong(-1)).multiply(other));
     }
 
     public Product<E> multiply(PolynomialExpression<E> other) {

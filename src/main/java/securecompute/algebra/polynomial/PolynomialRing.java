@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import securecompute.algebra.Ring;
 
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -29,8 +30,8 @@ public class PolynomialRing<E> implements IPolynomialRing<E> {
     }
 
     @Override
-    public Element fromInt(int n) {
-        return polynomial(baseRing.fromInt(n));
+    public Element fromBigInteger(BigInteger n) {
+        return polynomial(baseRing.fromBigInteger(n));
     }
 
     @Override

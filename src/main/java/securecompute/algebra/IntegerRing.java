@@ -1,12 +1,13 @@
 package securecompute.algebra;
 
-public enum IntegerRing implements EuclideanDomain<Integer> {
+import java.math.BigInteger;
 
+public enum IntegerRing implements EuclideanDomain<Integer> {
     INSTANCE;
 
     @Override
-    public Integer fromInt(int n) {
-        return n;
+    public Integer fromBigInteger(BigInteger n) {
+        return n.intValueExact();
     }
 
     @Override

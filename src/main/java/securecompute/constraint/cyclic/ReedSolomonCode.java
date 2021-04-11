@@ -31,7 +31,7 @@ public class ReedSolomonCode<E> extends PuncturedPolynomialCode<E> implements Mu
         if (n < k) {
             throw new IllegalArgumentException("Length n is less than the code dimension k");
         }
-        if (n >= field.size()) {
+        if (n >= field.sizeAsLong()) {
             throw new IllegalArgumentException("Codeword length n >= field cardinality");
         }
 

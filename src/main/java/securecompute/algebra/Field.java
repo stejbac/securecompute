@@ -1,5 +1,7 @@
 package securecompute.algebra;
 
+import java.math.BigInteger;
+
 public interface Field<E> extends Ring<E> {
 
     E reciprocalOrZero(E elt);
@@ -16,10 +18,10 @@ public interface Field<E> extends Ring<E> {
     }
 
     @Override
-    default E power(E elt, int exponent) {
-        if (exponent < 0) {
+    default E power(E elt, BigInteger exponent) {
+        if (exponent.signum() < 0) {
             elt = reciprocal(elt);
-            exponent = 0 - exponent;
+            exponent = exponent.negate();
         }
         return Ring.super.power(elt, exponent);
     }
