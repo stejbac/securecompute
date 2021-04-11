@@ -9,6 +9,16 @@ public interface EuclideanDomain<E> extends Ring<E> {
 
     int size(E elt);
 
+    default E abs(E elt) {
+        return product(elt, invSignum(elt));
+    }
+
+    default E signum(E elt) {
+        return invSignum(invSignum(elt));
+    }
+
+    E invSignum(E elt);
+
     default E div(E dividend, E divisor) {
         return divMod(dividend, divisor).getQuotient();
     }
@@ -26,7 +36,7 @@ public interface EuclideanDomain<E> extends Ring<E> {
     }
 
     default E lcm(E left, E right) {
-        return product(gcdExt(left, right).leftDivGcd, right);
+        return abs(product(gcdExt(left, right).leftDivGcd, right));
     }
 
     default GcdExtResult<E> gcdExt(E left, E right) {
@@ -47,7 +57,19 @@ public interface EuclideanDomain<E> extends Ring<E> {
             y = t;
             t = difference(oldY, product(t, divModResult.quotient));
         }
-        return new GcdExtResult<>(x, y, left, oddSteps ? negative(t) : t, oddSteps ? s : negative(s));
+        E u = invSignum(left), v = invSignum(u);
+        s = product(oddSteps ? s : negative(s), u);
+        t = product(oddSteps ? negative(t) : t, u);
+        x = product(x, v);
+        y = product(y, v);
+        left = product(left, v);
+
+        if (size(s) > 0) {
+            DivModResult<? extends E> divModResult = divMod(x, s);
+            x = divModResult.remainder;
+            y = sum(y, product(t, divModResult.quotient));
+        }
+        return new GcdExtResult<>(x, y, left, t, s);
     }
 
     final class DivModResult<E> {

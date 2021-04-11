@@ -31,6 +31,16 @@ public enum IntegerRing implements EuclideanDomain<Integer> {
     }
 
     @Override
+    public Integer abs(Integer elt) {
+        return Math.abs(elt);
+    }
+
+    @Override
+    public Integer invSignum(Integer elt) {
+        return elt < 0 ? -1 : elt == 0 ? 0 : 1;
+    }
+
+    @Override
     public Integer div(Integer dividend, Integer divisor) {
         return Math.floorDiv(dividend, divisor);
     }

@@ -13,6 +13,11 @@ public interface WithDefaultEuclideanDomain<E> extends WithDefaultRing<E>, Eucli
     }
 
     @Override
+    default E invSignum(E elt) {
+        return getDefaultStructure().invSignum(elt);
+    }
+
+    @Override
     default E div(E dividend, E divisor) {
         return getDefaultStructure().div(dividend, divisor);
     }

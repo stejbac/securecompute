@@ -16,6 +16,12 @@ public interface IFieldPolynomialRing<E> extends IPolynomialRing<E>, EuclideanDo
     }
 
     @Override
+    default Polynomial<E> invSignum(Polynomial<E> elt) {
+        E msc = elt.getDegree() >= 0 ? elt.getCoefficients().get(elt.getDegree()) : getBaseRing().zero();
+        return polynomial(ImmutableList.of(getBaseRing().reciprocalOrZero(msc)));
+    }
+
+    @Override
     default DivModResult<Polynomial<E>> divMod(Polynomial<E> dividend, Polynomial<E> divisor) {
         if (divisor.getDegree() < 0) {
             throw new ArithmeticException("Division by zero");

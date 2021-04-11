@@ -20,6 +20,11 @@ public interface WithDefaultFieldPolynomialRing<E> extends WithDefaultPolynomial
     }
 
     @Override
+    default Polynomial<E> invSignum(Polynomial<E> elt) {
+        return getDefaultStructure().invSignum(elt);
+    }
+
+    @Override
     default DivModResult<Polynomial<E>> divMod(Polynomial<E> dividend, Polynomial<E> divisor) {
         return getDefaultStructure().divMod(dividend, divisor);
     }

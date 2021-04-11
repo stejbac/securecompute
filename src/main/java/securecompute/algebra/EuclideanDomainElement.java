@@ -21,6 +21,14 @@ public interface EuclideanDomainElement<E> extends RingElement<E> {
         return getEuclideanDomain().size(cast());
     }
 
+    default E abs() {
+        return getEuclideanDomain().abs(cast());
+    }
+
+    default E signum() {
+        return getEuclideanDomain().signum(cast());
+    }
+
     default E div(E other) {
         return getEuclideanDomain().div(cast(), other);
     }

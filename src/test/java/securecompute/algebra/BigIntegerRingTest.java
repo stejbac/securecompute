@@ -3,11 +3,16 @@ package securecompute.algebra;
 import org.junit.jupiter.api.Test;
 import securecompute.helper.WithDefaultEuclideanDomain;
 
-class IntegerRingTest implements WithDefaultEuclideanDomain<Integer> {
+import java.math.BigInteger;
+
+import static java.math.BigInteger.valueOf;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+class BigIntegerRingTest implements WithDefaultEuclideanDomain<BigInteger> {
 
     @Override
-    public EuclideanDomain<Integer> getDefaultStructure() {
-        return IntegerRing.INSTANCE;
+    public EuclideanDomain<BigInteger> getDefaultStructure() {
+        return BigIntegerRing.INSTANCE;
     }
 
     @Test
@@ -61,5 +66,16 @@ class IntegerRingTest implements WithDefaultEuclideanDomain<Integer> {
         System.out.println(gcdExt(-10, -25));
         System.out.println(gcdExt(-25, -10));
         System.out.println();
+    }
+
+    private DivModResult<BigInteger> divMod(long dividend, long divisor) {
+        DivModResult<BigInteger> result = divMod(valueOf(dividend), valueOf(divisor));
+        assertEquals(result.getQuotient(), div(valueOf(dividend), valueOf(divisor)));
+        assertEquals(result.getRemainder(), mod(valueOf(dividend), valueOf(divisor)));
+        return result;
+    }
+
+    private GcdExtResult<BigInteger> gcdExt(long left, long right) {
+        return gcdExt(valueOf(left), valueOf(right));
     }
 }
