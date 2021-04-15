@@ -13,6 +13,14 @@ public class QuotientField<E> implements Field<QuotientField<E>.Coset> {
         this.idealGenerator = idealGenerator;
     }
 
+    public EuclideanDomain<E> getBaseRing() {
+        return baseRing;
+    }
+
+    public E getIdealGenerator() {
+        return idealGenerator;
+    }
+
     @Override
     public Coset fromBigInteger(BigInteger n) {
         return coset(baseRing.fromBigInteger(n));
@@ -36,10 +44,11 @@ public class QuotientField<E> implements Field<QuotientField<E>.Coset> {
     @Override
     public Coset reciprocalOrZero(Coset elt) {
         EuclideanDomain.GcdExtResult<E> gcdExtResult = baseRing.gcdExt(elt.witness, idealGenerator);
-        // TODO: Add error handling for the case that 'idealGenerator' turns out to be reducible.
-        return coset(gcdExtResult.getGcd().equals(baseRing.one())
-                ? gcdExtResult.getX()
-                : baseRing.zero());
+        if (!gcdExtResult.getGcd().equals(baseRing.one()) && !gcdExtResult.getX().equals(baseRing.zero())) {
+            throw new ReducibleGeneratorException("Ideal generator is reducible",
+                    gcdExtResult.getGcd(), gcdExtResult.getRightDivGcd());
+        }
+        return coset(gcdExtResult.getX());
     }
 
     public final Coset coset(E offset) {
@@ -64,7 +73,7 @@ public class QuotientField<E> implements Field<QuotientField<E>.Coset> {
         }
 
         @Override
-        public Field<Coset> getField() {
+        public QuotientField<E> getField() {
             return QuotientField.this;
         }
 

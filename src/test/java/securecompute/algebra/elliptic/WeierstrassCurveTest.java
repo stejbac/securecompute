@@ -1,16 +1,26 @@
 package securecompute.algebra.elliptic;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.math.IntMath;
+import com.google.common.primitives.Ints;
 import org.junit.jupiter.api.Test;
-import securecompute.algebra.BigIntegerRing;
-import securecompute.algebra.IntegerRing;
-import securecompute.algebra.QuotientField;
+import securecompute.algebra.*;
 import securecompute.algebra.elliptic.WeierstrassCurve.Point;
 
 import java.math.BigInteger;
+import java.math.RoundingMode;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class WeierstrassCurveTest {
+//    private static final BigInteger TWO = BigInteger.valueOf(2);
+
     private static final QuotientField<Integer> Z_223 = new QuotientField<>(IntegerRing.INSTANCE, 223);
     private static final WeierstrassCurve<QuotientField<Integer>.Coset> CURVE = new WeierstrassCurve<>(Z_223, Z_223.zero(), Z_223.fromLong(7));
 
@@ -21,6 +31,10 @@ class WeierstrassCurveTest {
 
     private static final QuotientField<BigInteger> Z_P = new QuotientField<>(BigIntegerRing.INSTANCE, P);
     private static final WeierstrassCurve<QuotientField<BigInteger>.Coset> SEC_P256K1 = new WeierstrassCurve<>(Z_P, Z_P.zero(), Z_P.fromLong(7));
+
+    private static final List<BigInteger> N_MINUS_1_PRIME_FACTORS = Stream.of(
+            "2", "2", "2", "2", "2", "2", "3", "149", "631", "107361793816595537", "174723607534414371449", "341948486974166000522343609283189"
+    ).map(BigInteger::new).collect(ImmutableList.toImmutableList());
 
     @Test
     void testToString() {
@@ -70,10 +84,60 @@ class WeierstrassCurveTest {
 //            G.multiply(N);
 //        }
         assertEquals(SEC_P256K1.zero(), G.multiply(N));
+
+        LargePrimeField baseField = new LargePrimeField(P);
+        LargePrimeField scalarField = new LargePrimeField(N, N_MINUS_1_PRIME_FACTORS);
+
+        assertEquals(baseField.coset(BigInteger.valueOf(3)), baseField.getPrimitiveElement());
+        assertEquals(scalarField.coset(BigInteger.valueOf(7)), scalarField.getPrimitiveElement());
     }
 
     private static <E> Point<QuotientField<E>.Coset> point(WeierstrassCurve<QuotientField<E>.Coset> curve, E x, E y) {
         QuotientField<E> baseField = (QuotientField<E>) curve.getField();
         return curve.point(baseField.coset(x), baseField.coset(y));
     }
+
+    @Test
+    void testLenstraFactorization() {
+        Random rnd = new Random(12345);
+        BigInteger p = BigInteger.probablePrime(20, rnd);
+        BigInteger q = BigInteger.probablePrime(20, rnd);
+        LargePrimeField field = new LargePrimeField(p.multiply(q), false);
+
+        assertTrue(Lists.partition(Ints.asList(IntStream.range(0, 1000000).toArray()), 200).stream()
+                .anyMatch(list -> list.parallelStream().anyMatch(i -> {
+                    LargePrimeField.Coset sqrtB = field.sampleUniformly(rnd);
+                    WeierstrassCurve<LargePrimeField.Coset> curve = new WeierstrassCurve<>(field, field.sampleUniformly(rnd), sqrtB.pow(2));
+                    Point<LargePrimeField.Coset> point = curve.point(field.zero(), sqrtB);
+                    try {
+                        for (int j = 2; j < IntMath.sqrt(i, RoundingMode.DOWN); j++) {
+                            if (IntMath.isPrime(j)) {
+                                point = curve.sum(Collections.nCopies(j, point));
+                            }
+                        }
+                        return false;
+                    } catch (ReducibleGeneratorException e) {
+                        BigInteger r = (BigInteger) e.getFirstFactor(), s = (BigInteger) e.getSecondFactor();
+                        assertEquals(p.min(q), r.min(s));
+                        assertEquals(p.max(q), r.max(s));
+                        return true;
+                    }
+                })));
+    }
+
+//    private static Optional<LargePrimeField.Coset> sqrt(LargePrimeField.Coset x) {
+//        BigInteger p = x.getField().getIdealGenerator();
+//        BigInteger pMinus1 = p.subtract(ONE);
+//        int n = 0;
+//        while (!pMinus1.testBit(n)) {
+//            n++;
+//        }
+//        for (BigInteger i = ONE; i.bitLength() <= n; i = i.add(TWO)) {
+//            LargePrimeField.Coset y = x.pow(pMinus1.multiply(i).shiftRight(n + 1).add(ONE));
+//            if (x.equals(y.pow(2))) {
+//                return Optional.of(x);
+//            }
+//        }
+//        return Optional.empty();
+//    }
 }
