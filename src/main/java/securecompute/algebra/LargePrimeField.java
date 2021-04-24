@@ -99,4 +99,14 @@ public class LargePrimeField extends QuotientField<BigInteger> implements Finite
             }
         }
     }
+
+    @Override
+    public Coset reciprocalOrZero(Coset elt) {
+        try {
+            BigInteger n = elt.getWitness();
+            return n.equals(ZERO) ? zero() : coset(n.modInverse(getIdealGenerator()));
+        } catch (ArithmeticException e) {
+            return super.reciprocalOrZero(elt);
+        }
+    }
 }

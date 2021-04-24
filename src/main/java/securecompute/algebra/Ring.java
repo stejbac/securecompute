@@ -24,6 +24,16 @@ public interface Ring<E> extends AbelianGroup<E> {
 
     E product(E left, E right);
 
+    @Override
+    default E product(E elt, long k) {
+        return product(elt, fromLong(k));
+    }
+
+    @Override
+    default E product(E elt, BigInteger k) {
+        return product(elt, fromBigInteger(k));
+    }
+
     default E product(Iterable<E> elements) {
         return product(Streams.stream(elements));
     }

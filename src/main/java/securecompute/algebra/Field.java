@@ -1,6 +1,8 @@
 package securecompute.algebra;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 
 public interface Field<E> extends Ring<E> {
 
@@ -24,5 +26,24 @@ public interface Field<E> extends Ring<E> {
             exponent = exponent.negate();
         }
         return Ring.super.power(elt, exponent);
+    }
+
+    // uses Montgomery's trick to perform a batch inversion from a single inversion op
+    static <E> List<E> reciprocals(Field<E> field, List<E> elements) {
+        List<E> result = new ArrayList<>(elements.size());
+        E one = field.one(), prod = one;
+        for (E elt : elements) {
+            result.add(prod);
+            prod = elt == one ? prod : field.product(prod, elt);
+        }
+        prod = field.reciprocal(prod);
+        for (int i = elements.size(); i-- > 0; ) {
+            E elt = elements.get(i);
+            result.set(i, elt == one ? one : field.product(result.get(i), prod));
+            if (i > 0) {
+                prod = elt == one ? prod : field.product(prod, elt);
+            }
+        }
+        return result;
     }
 }

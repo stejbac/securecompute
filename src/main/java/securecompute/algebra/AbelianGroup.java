@@ -1,8 +1,10 @@
 package securecompute.algebra;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 
 import java.math.BigInteger;
+import java.util.List;
 import java.util.stream.Stream;
 
 public interface AbelianGroup<E> {
@@ -31,17 +33,43 @@ public interface AbelianGroup<E> {
 
     default E product(E elt, BigInteger k) {
         if (k.signum() < 0) {
-            return product(elt, k.negate());
+            return product(negative(elt), k.negate());
         }
-        E acc = null;
-        for (int i = 0, len = k.bitLength(); i < len; i++) {
-            if (k.testBit(i)) {
-                acc = acc != null ? sum(acc, elt) : elt;
-            }
-            if (i < len - 1) {
-                elt = sum(elt, elt);
-            }
+        int bitLength = k.bitLength();
+        if (bitLength <= 1) {
+            return k.testBit(0) ? elt : zero();
         }
-        return acc != null ? acc : zero();
+        E x2, x3, x4, x5, x6, x7, x8;
+        List<E> table = bitLength < 4 ?
+                ImmutableList.of(zero(), elt) : bitLength < 64 ?
+                ImmutableList.of(zero(), elt, x2 = sum(elt, elt), sum(elt, x2)) :
+                ImmutableList.of(
+                        zero(), elt, x2 = sum(elt, elt), x3 = sum(elt, x2),
+                        x4 = sum(x2, x2), x5 = sum(x2, x3), x6 = sum(x3, x3), x7 = sum(x3, x4),
+                        x8 = sum(x4, x4), sum(x4, x5), sum(x5, x5), sum(x5, x6),
+                        sum(x6, x6), sum(x6, x7), sum(x7, x7), sum(x7, x8)
+                );
+        return windowedProduct(this, table, k);
+    }
+
+    default E select(int index, List<E> elements) {
+        return elements.get(index);
+    }
+
+    static <E> E windowedProduct(AbelianGroup<E> group, List<E> table, BigInteger k) {
+        E zero = group.zero();
+        int bitLength = k.bitLength();
+        int logTableSize = 31 - Integer.numberOfLeadingZeros(table.size());
+        byte[] bytes = k.toByteArray();
+        E acc = zero;
+        for (int i = bitLength - 1 & -logTableSize; i >= 0; i -= logTableSize) {
+            int index = (bytes[bytes.length - i / 8 - 1] & 0x0ff) >> (i & 7) & table.size() - 1;
+            E tableElt = group.select(index, table);
+            for (int j = 0; j < logTableSize; j++) {
+                acc = acc != zero ? group.sum(acc, acc) : zero;
+            }
+            acc = acc != zero ? group.sum(acc, tableElt) : tableElt;
+        }
+        return acc;
     }
 }

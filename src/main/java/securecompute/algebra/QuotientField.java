@@ -7,10 +7,13 @@ public class QuotientField<E> implements Field<QuotientField<E>.Coset> {
 
     private final EuclideanDomain<E> baseRing;
     private final E idealGenerator;
+    private final QuotientField<E>.Coset zero, one;
 
     public QuotientField(EuclideanDomain<E> baseRing, E idealGenerator) {
         this.baseRing = baseRing;
-        this.idealGenerator = idealGenerator;
+        this.idealGenerator = baseRing.abs(idealGenerator);
+        zero = coset(baseRing.zero());
+        one = coset(baseRing.one());
     }
 
     public EuclideanDomain<E> getBaseRing() {
@@ -22,18 +25,31 @@ public class QuotientField<E> implements Field<QuotientField<E>.Coset> {
     }
 
     @Override
+    public Coset zero() {
+        return zero;
+    }
+
+    @Override
+    public Coset one() {
+        return one;
+    }
+
+    @Override
     public Coset fromBigInteger(BigInteger n) {
         return coset(baseRing.fromBigInteger(n));
     }
 
     @Override
     public Coset sum(Coset left, Coset right) {
-        return coset(baseRing.sum(left.witness, right.witness));
+        return right == zero ? left : left == zero ? right : coset(baseRing.sum(left.witness, right.witness));
     }
 
     @Override
     public Coset product(Coset left, Coset right) {
-        return coset(baseRing.product(left.witness, right.witness));
+        if (left == zero || right == zero) {
+            return zero;
+        }
+        return right == one ? left : left == one ? right : coset(baseRing.product(left.witness, right.witness));
     }
 
     @Override
