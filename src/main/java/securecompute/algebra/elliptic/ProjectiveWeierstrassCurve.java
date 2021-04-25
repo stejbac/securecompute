@@ -71,6 +71,9 @@ public class ProjectiveWeierstrassCurve<E> implements AbelianGroup<ProjectiveWei
     private Point<E> double_(Point<E> elt) {
         checkCurve(elt);
         E x1 = elt.coordinates().x(), y1 = elt.coordinates().y(), z1 = elt.coordinates().z();
+        if (z1.equals(field.zero())) {
+            return infinity;
+        }
         // Use the "dbl-2007-bl" doubling formulas from http://hyperelliptic.org/EFD/g1p/auto-shortw-projective.html:
         E xx = sq(x1), zz = sq(z1);
         E w = s(p(zz, a), p(xx, 3));
@@ -166,6 +169,9 @@ public class ProjectiveWeierstrassCurve<E> implements AbelianGroup<ProjectiveWei
     }
 
     public boolean isCurvePoint(E x, E y, E z) {
+        if (z.equals(field.zero()) && y.equals(field.zero())) {
+            return false;
+        }
         E z2 = sq(z), z3 = p(z, z2);
         E cubic = s(p(x, s(sq(x), p(z2, a))), p(z3, b));
         return cubic.equals(p(sq(y), z));

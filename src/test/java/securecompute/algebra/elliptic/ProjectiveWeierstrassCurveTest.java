@@ -9,11 +9,11 @@ import securecompute.algebra.elliptic.ProjectiveWeierstrassCurve.Point;
 import java.math.BigInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ProjectiveWeierstrassCurveTest {
     private static final QuotientField<Integer> Z_223 = new QuotientField<>(IntegerRing.INSTANCE, 223);
-    private static final ProjectiveWeierstrassCurve<QuotientField<Integer>.Coset> CURVE = new ProjectiveWeierstrassCurve<>(Z_223, Z_223.zero(), Z_223.fromLong(7));
+    private static final ProjectiveWeierstrassCurve<QuotientField<Integer>.Coset> CURVE = new ProjectiveWeierstrassCurve<>(
+            Z_223, Z_223.zero(), Z_223.fromLong(7));
 
     private static final BigInteger P = new BigInteger("0fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f", 16);
     private static final BigInteger N = new BigInteger("0fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16);
@@ -21,7 +21,8 @@ class ProjectiveWeierstrassCurveTest {
     private static final BigInteger G_Y = new BigInteger("483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8", 16);
 
     private static final LargePrimeField Z_P = new LargePrimeField(P);
-    private static final ProjectiveWeierstrassCurve<LargePrimeField.Coset> SEC_P256K1 = new ProjectiveWeierstrassCurve<>(Z_P, Z_P.zero(), Z_P.fromLong(7));
+    private static final ProjectiveWeierstrassCurve<LargePrimeField.Coset> SEC_P256K1 = new ProjectiveWeierstrassCurve<>(
+            Z_P, Z_P.zero(), Z_P.fromLong(7));
 
     @Test
     void testToString() {
@@ -44,6 +45,7 @@ class ProjectiveWeierstrassCurveTest {
         assertFalse(CURVE.isCurvePoint(Z_223.fromLong(200), Z_223.fromLong(119), Z_223.one()));
         assertTrue(CURVE.isCurvePoint(Z_223.fromLong(1), Z_223.fromLong(193), Z_223.one()));
         assertFalse(CURVE.isCurvePoint(Z_223.fromLong(42), Z_223.fromLong(99), Z_223.one()));
+        assertFalse(CURVE.isCurvePoint(Z_223.zero(), Z_223.zero(), Z_223.zero()));
 
         assertThrows(IllegalArgumentException.class, () -> point(CURVE, 200, 119));
     }
@@ -53,6 +55,11 @@ class ProjectiveWeierstrassCurveTest {
         assertEquals(point(CURVE, 220, 181), point(CURVE, 170, 142).add(point(CURVE, 60, 139)));
         assertEquals(point(CURVE, 215, 68), point(CURVE, 47, 71).add(point(CURVE, 17, 56)));
         assertEquals(point(CURVE, 47, 71), point(CURVE, 143, 98).add(point(CURVE, 76, 66)));
+        assertEquals(point(CURVE, 36, 111), point(CURVE, 47, 71).add(point(CURVE, 47, 71)));
+        assertEquals(point(CURVE, 47, 71), point(CURVE, 0, 1, 0).add(point(CURVE, 47, 71)));
+        assertEquals(point(CURVE, 47, 71), CURVE.zero().add(point(CURVE, 47, 71)));
+        assertEquals(point(CURVE, 47, 71), point(CURVE, 47, 71).add(CURVE.zero()));
+        assertEquals(CURVE.zero(), CURVE.zero().add(CURVE.zero()));
     }
 
     @Test
