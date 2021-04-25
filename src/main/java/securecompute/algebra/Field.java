@@ -19,6 +19,14 @@ public interface Field<E> extends Ring<E> {
         return product(dividend, reciprocal(divisor));
     }
 
+    default E quotient(E dividend, long divisor) {
+        return product(dividend, reciprocal(fromLong(divisor)));
+    }
+
+    default E quotient(E dividend, BigInteger divisor) {
+        return product(dividend, reciprocal(fromBigInteger(divisor)));
+    }
+
     @Override
     default E power(E elt, BigInteger exponent) {
         if (exponent.signum() < 0) {

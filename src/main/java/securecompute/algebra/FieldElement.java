@@ -1,5 +1,7 @@
 package securecompute.algebra;
 
+import java.math.BigInteger;
+
 public interface FieldElement<E> extends RingElement<E> {
 
     @Override
@@ -19,6 +21,14 @@ public interface FieldElement<E> extends RingElement<E> {
 
     default E divide(E other) {
         return getField().quotient(cast(), other);
+    }
+
+    default E divide(long k) {
+        return getField().quotient(cast(), k);
+    }
+
+    default E divide(BigInteger k) {
+        return getField().quotient(cast(), k);
     }
 
     default E recip() {
