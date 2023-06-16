@@ -25,19 +25,19 @@ class ProjectiveTwistedEdwardsCurveTest {
             "2", "2", "3", "11", "198211423230930754013084525763697", "276602624281642239937218680557139826668747"
     ).map(BigInteger::new).collect(ImmutableList.toImmutableList());
 
-    private static LargePrimeField.Coset minusOne;
+    private static final LargePrimeField.Coset MINUS_ONE;
 
     private static final LargePrimeField Z_P = new LargePrimeField(P, P_MINUS_1_PRIME_FACTORS) {
         // a hack to speed up point doubling in ED_25519 by avoiding expensive multiplication by a = P - 1 (mod P):
         @Override
         public Coset product(Coset left, Coset right) {
-            return right == minusOne ? left.negate() : super.product(left, right);
+            return right == MINUS_ONE ? left.negate() : super.product(left, right);
         }
     };
     private static final LargePrimeField Z_L = new LargePrimeField(L, L_MINUS_1_PRIME_FACTORS);
 
     private static final ProjectiveTwistedEdwardsCurve<LargePrimeField.Coset> ED_25519 = new ProjectiveTwistedEdwardsCurve<>(
-            Z_P, minusOne = Z_P.one().negate(), Z_P.fromLong(-121665).divide(121666)
+            Z_P, MINUS_ONE = Z_P.one().negate(), Z_P.fromLong(-121665).divide(121666)
     );
 
     @Test

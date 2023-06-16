@@ -34,13 +34,10 @@ class ReedSolomonCodeTest<E> {
             10, 0b00000010,
             100, 0b00000100,
             999, 0b00001000
-    ), x -> {
-        // noinspection ConstantConditions
-        return QUADRATIC_FIELD.element(AES_FIELD.element(x), AES_FIELD.zero());
-    });
+    ), x -> QUADRATIC_FIELD.element(AES_FIELD.element(x), AES_FIELD.zero()));
 
-    private ReedSolomonCode<E> code = (ReedSolomonCode<E>) CODE;
-    private Map<Integer, E> knownSymbolTestMap = (Map<Integer, E>) KNOWN_SYMBOL_TEST_MAP;
+    private final ReedSolomonCode<E> code = (ReedSolomonCode<E>) CODE;
+    private final Map<Integer, E> knownSymbolTestMap = (Map<Integer, E>) KNOWN_SYMBOL_TEST_MAP;
 
     @Retention(RetentionPolicy.RUNTIME)
     @ParameterizedTest(name = "Message {arguments}")
@@ -67,7 +64,6 @@ class ReedSolomonCodeTest<E> {
 
     @SuppressWarnings("unused") // referenced by ParamTest2
     private static List<Arguments> testMessages2() {
-        // noinspection ConstantConditions
         return Lists.transform(
                 Lists.cartesianProduct(testMessages(), testMessages()),
                 args -> Arguments.of(args.toArray())
