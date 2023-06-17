@@ -58,11 +58,11 @@ public interface EuclideanDomain<E> extends Ring<E> {
             t = difference(oldY, product(t, divModResult.quotient));
         }
         E u = invSignum(left), v = invSignum(u);
-        s = product(oddSteps ? s : negative(s), u);
-        t = product(oddSteps ? negative(t) : t, u);
-        x = product(x, v);
-        y = product(y, v);
-        left = product(left, v);
+        s = product(oddSteps ? s : negative(s), v);
+        t = product(oddSteps ? negative(t) : t, v);
+        x = product(x, u);
+        y = product(y, u);
+        left = product(left, u);
 
         if (size(s) > 0) {
             DivModResult<? extends E> divModResult = divMod(x, s);
