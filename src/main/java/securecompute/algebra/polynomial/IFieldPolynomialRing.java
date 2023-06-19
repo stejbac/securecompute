@@ -43,6 +43,6 @@ public interface IFieldPolynomialRing<E> extends IPolynomialRing<E>, EuclideanDo
             // TODO: Consider replacing this O(n^2) construction of the quotient with a builder:
             quotient = quotient.add(shiftedScalar);
         }
-        return new DivModResult<>(quotient, dividend);
+        return DivModResult.of(quotient, dividend);
     }
 }

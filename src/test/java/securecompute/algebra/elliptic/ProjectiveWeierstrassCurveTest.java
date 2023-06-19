@@ -1,12 +1,16 @@
 package securecompute.algebra.elliptic;
 
+import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Test;
-import securecompute.algebra.IntegerRing;
-import securecompute.algebra.LargePrimeField;
-import securecompute.algebra.QuotientField;
+import securecompute.StreamUtils;
+import securecompute.algebra.*;
+import securecompute.algebra.EuclideanDomain.DivModResult;
 import securecompute.algebra.elliptic.ProjectiveWeierstrassCurve.Point;
 
 import java.math.BigInteger;
+import java.util.List;
+import java.util.Random;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,7 +24,16 @@ class ProjectiveWeierstrassCurveTest {
     private static final BigInteger G_X = new BigInteger("79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", 16);
     private static final BigInteger G_Y = new BigInteger("483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8", 16);
 
-    private static final LargePrimeField Z_P = new LargePrimeField(P);
+    private static final List<BigInteger> P_MINUS_1_PRIME_FACTORS = Stream.of(
+            "2", "3", "7", "13441", "205115282021455665897114700593932402728804164701536103180137503955397371"
+    ).map(BigInteger::new).collect(ImmutableList.toImmutableList());
+
+    private static final List<BigInteger> N_MINUS_1_PRIME_FACTORS = Stream.of(
+            "2", "2", "2", "2", "2", "2", "3", "149", "631", "107361793816595537", "174723607534414371449", "341948486974166000522343609283189"
+    ).map(BigInteger::new).collect(ImmutableList.toImmutableList());
+
+    private static final LargePrimeField Z_P = new LargePrimeField(P, P_MINUS_1_PRIME_FACTORS);
+    private static final LargePrimeField Z_N = new LargePrimeField(N, N_MINUS_1_PRIME_FACTORS);
     private static final ProjectiveWeierstrassCurve<LargePrimeField.Coset> SEC_P256K1 = new ProjectiveWeierstrassCurve<>(
             Z_P, Z_P.zero(), Z_P.fromLong(7));
 
@@ -86,6 +99,54 @@ class ProjectiveWeierstrassCurveTest {
         assertEquals(SEC_P256K1.zero(), G.multiply(N));
     }
 
+    @Test
+    void testBigCurveEndomorphism() {
+        LargePrimeField.Coset cubeRootOfUnityModP = Z_P.getPrimitiveElement().pow(P.divide(BigInteger.valueOf(3)));
+        LargePrimeField.Coset cubeRootOfUnityModN = Z_N.getPrimitiveElement().pow(N.divide(BigInteger.valueOf(3)));
+
+        assertEquals(Z_P.one(), cubeRootOfUnityModP.pow(3));
+        assertEquals(Z_N.one(), cubeRootOfUnityModN.pow(3));
+
+        Point<LargePrimeField.Coset> G = point(SEC_P256K1, G_X, G_Y), G_mapped;
+        assertEquals(multiplyX(G, cubeRootOfUnityModP), G_mapped = G.multiply(cubeRootOfUnityModN.getWitness()));
+        assertEquals(multiplyX(G, cubeRootOfUnityModP.pow(2)), G.multiply(cubeRootOfUnityModN.pow(2).getWitness()));
+
+        BigIntegerRing ring = BigIntegerRing.INSTANCE;
+        List<GlvPair> glvPairs = StreamUtils.takeWhile(
+                EuclideanDomain.partialGcdExtResults(ring, Z_N.size(), cubeRootOfUnityModN.getWitness()),
+                r -> ring.size(r.left()) >= ring.size(r.y())
+        ).map(r -> new GlvPair(r.left(), r.y())).collect(ImmutableList.toImmutableList());
+
+        assertEquals(72, glvPairs.size());
+
+        Random rnd = new Random(6543);
+        for (int i = 0; i < 10; i++) {
+            LargePrimeField.Coset k = Z_N.sampleUniformly(rnd);
+            GlvPair glvPair = toGlvForm(glvPairs, k.getWitness());
+            assertEquals(k, Z_N.fromBigInteger(glvPair.k).add(cubeRootOfUnityModN.multiply(glvPair.m)));
+            assertEquals(G.multiply(k.getWitness()), G.multiply(glvPair.k).add(G_mapped.multiply(glvPair.m)));
+        }
+//        for (int i = 0; i < 1000000; i++) {
+//            toGlvForm(glvPairs, Z_N.sampleUniformly(rnd).getWitness());
+//        }
+    }
+
+    private static GlvPair toGlvForm(List<GlvPair> glvPairs, BigInteger k) {
+        BigIntegerRing ring = BigIntegerRing.INSTANCE;
+        BigInteger m = ring.zero();
+        for (GlvPair glvPair : glvPairs) {
+            DivModResult<BigInteger> divModResult = ring.divMod(k, glvPair.k);
+            m = ring.sum(m, ring.product(glvPair.m, divModResult.getQuotient()));
+            k = divModResult.getRemainder();
+        }
+        return new GlvPair(k, m);
+    }
+
+    private static Point<LargePrimeField.Coset> multiplyX(Point<LargePrimeField.Coset> point, LargePrimeField.Coset u) {
+        P2PointCoordinates<LargePrimeField.Coset> coordinates = point.normalCoordinates().get();
+        return SEC_P256K1.point(coordinates.x().multiply(u), coordinates.y(), coordinates.z());
+    }
+
     private static <E> Point<QuotientField<E>.Coset> point(ProjectiveWeierstrassCurve<QuotientField<E>.Coset> curve, E x, E y) {
         QuotientField<E> baseField = (QuotientField<E>) curve.getField();
         return point(curve, x, y, baseField.getBaseRing().one());
@@ -94,5 +155,14 @@ class ProjectiveWeierstrassCurveTest {
     private static <E> Point<QuotientField<E>.Coset> point(ProjectiveWeierstrassCurve<QuotientField<E>.Coset> curve, E x, E y, E z) {
         QuotientField<E> baseField = (QuotientField<E>) curve.getField();
         return curve.point(baseField.coset(x), baseField.coset(y), baseField.coset(z));
+    }
+
+    private static class GlvPair {
+        final BigInteger k, m;
+
+        GlvPair(BigInteger k, BigInteger m) {
+            this.k = k;
+            this.m = m;
+        }
     }
 }

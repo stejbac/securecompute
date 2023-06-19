@@ -3,8 +3,9 @@ package securecompute.algebra;
 import org.junit.jupiter.api.Test;
 import securecompute.helper.WithDefaultEuclideanDomain;
 
-class IntegerRingTest implements WithDefaultEuclideanDomain<Integer> {
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+class IntegerRingTest implements WithDefaultEuclideanDomain<Integer> {
     @Override
     public EuclideanDomain<Integer> getDefaultStructure() {
         return IntegerRing.INSTANCE;
@@ -12,54 +13,53 @@ class IntegerRingTest implements WithDefaultEuclideanDomain<Integer> {
 
     @Test
     void testDivMod() {
-        System.out.println(divMod(24, 10));
-        System.out.println(divMod(24, -10));
-        System.out.println(divMod(-24, 10));
-        System.out.println(divMod(-24, -10));
-        System.out.println(divMod(24, 12));
-        System.out.println(divMod(24, -12));
-        System.out.println(divMod(-24, 12));
-        System.out.println(divMod(-24, -12));
+        assertEquals(DivModResult.of(2, 4), divMod(24, 10));
+        assertEquals(DivModResult.of(-3, -6), divMod(24, -10));
+        assertEquals(DivModResult.of(-3, 6), divMod(-24, 10));
+        assertEquals(DivModResult.of(2, -4), divMod(-24, -10));
+        assertEquals(DivModResult.of(2, 0), divMod(24, 12));
+        assertEquals(DivModResult.of(-2, 0), divMod(24, -12));
+        assertEquals(DivModResult.of(-2, 0), divMod(-24, 12));
+        assertEquals(DivModResult.of(2, 0), divMod(-24, -12));
     }
 
     @Test
     void testGcdExt() {
-        System.out.println(gcdExt(0, 0));
-        System.out.println(gcdExt(0, 1));
-        System.out.println(gcdExt(1, 0));
-        System.out.println(gcdExt(1, 1));
-        System.out.println(gcdExt(1, 2));
-        System.out.println(gcdExt(2, 1));
-        System.out.println(gcdExt(10, 24));
-        System.out.println(gcdExt(24, 10));
-        System.out.println(gcdExt(10, 25));
-        System.out.println(gcdExt(25, 10));
-        System.out.println();
-        System.out.println(gcdExt(-1, 0));
-        System.out.println(gcdExt(-1, 1));
-        System.out.println(gcdExt(-1, 2));
-        System.out.println(gcdExt(-2, 1));
-        System.out.println(gcdExt(-10, 24));
-        System.out.println(gcdExt(-24, 10));
-        System.out.println(gcdExt(-10, 25));
-        System.out.println(gcdExt(-25, 10));
-        System.out.println();
-        System.out.println(gcdExt(0, -1));
-        System.out.println(gcdExt(1, -1));
-        System.out.println(gcdExt(1, -2));
-        System.out.println(gcdExt(2, -1));
-        System.out.println(gcdExt(10, -24));
-        System.out.println(gcdExt(24, -10));
-        System.out.println(gcdExt(10, -25));
-        System.out.println(gcdExt(25, -10));
-        System.out.println();
-        System.out.println(gcdExt(-1, -1));
-        System.out.println(gcdExt(-1, -2));
-        System.out.println(gcdExt(-2, -1));
-        System.out.println(gcdExt(-10, -24));
-        System.out.println(gcdExt(-24, -10));
-        System.out.println(gcdExt(-10, -25));
-        System.out.println(gcdExt(-25, -10));
-        System.out.println();
+        assertEquals(GcdExtResult.of(0, 0, 0, 0, 0), gcdExt(0, 0));
+        assertEquals(GcdExtResult.of(0, 1, 1, 0, 1), gcdExt(0, 1));
+        assertEquals(GcdExtResult.of(1, 0, 1, 1, 0), gcdExt(1, 0));
+        assertEquals(GcdExtResult.of(0, 1, 1, 1, 1), gcdExt(1, 1));
+        assertEquals(GcdExtResult.of(1, 0, 1, 1, 2), gcdExt(1, 2));
+        assertEquals(GcdExtResult.of(0, 1, 1, 2, 1), gcdExt(2, 1));
+        assertEquals(GcdExtResult.of(5, -2, 2, 5, 12), gcdExt(10, 24));
+        assertEquals(GcdExtResult.of(3, -7, 2, 12, 5), gcdExt(24, 10));
+        assertEquals(GcdExtResult.of(3, -1, 5, 2, 5), gcdExt(10, 25));
+        assertEquals(GcdExtResult.of(1, -2, 5, 5, 2), gcdExt(25, 10));
+
+        assertEquals(GcdExtResult.of(-1, 0, 1, -1, 0), gcdExt(-1, 0));
+        assertEquals(GcdExtResult.of(0, 1, 1, -1, 1), gcdExt(-1, 1));
+        assertEquals(GcdExtResult.of(1, 1, 1, -1, 2), gcdExt(-1, 2));
+        assertEquals(GcdExtResult.of(0, 1, 1, -2, 1), gcdExt(-2, 1));
+        assertEquals(GcdExtResult.of(7, 3, 2, -5, 12), gcdExt(-10, 24));
+        assertEquals(GcdExtResult.of(2, 5, 2, -12, 5), gcdExt(-24, 10));
+        assertEquals(GcdExtResult.of(2, 1, 5, -2, 5), gcdExt(-10, 25));
+        assertEquals(GcdExtResult.of(1, 3, 5, -5, 2), gcdExt(-25, 10));
+
+        assertEquals(GcdExtResult.of(0, -1, 1, 0, -1), gcdExt(0, -1));
+        assertEquals(GcdExtResult.of(0, -1, 1, 1, -1), gcdExt(1, -1));
+        assertEquals(GcdExtResult.of(-1, -1, 1, 1, -2), gcdExt(1, -2));
+        assertEquals(GcdExtResult.of(0, -1, 1, 2, -1), gcdExt(2, -1));
+        assertEquals(GcdExtResult.of(-7, -3, 2, 5, -12), gcdExt(10, -24));
+        assertEquals(GcdExtResult.of(-2, -5, 2, 12, -5), gcdExt(24, -10));
+        assertEquals(GcdExtResult.of(-2, -1, 5, 2, -5), gcdExt(10, -25));
+        assertEquals(GcdExtResult.of(-1, -3, 5, 5, -2), gcdExt(25, -10));
+
+        assertEquals(GcdExtResult.of(0, -1, 1, -1, -1), gcdExt(-1, -1));
+        assertEquals(GcdExtResult.of(-1, 0, 1, -1, -2), gcdExt(-1, -2));
+        assertEquals(GcdExtResult.of(0, -1, 1, -2, -1), gcdExt(-2, -1));
+        assertEquals(GcdExtResult.of(-5, 2, 2, -5, -12), gcdExt(-10, -24));
+        assertEquals(GcdExtResult.of(-3, 7, 2, -12, -5), gcdExt(-24, -10));
+        assertEquals(GcdExtResult.of(-3, 1, 5, -2, -5), gcdExt(-10, -25));
+        assertEquals(GcdExtResult.of(-1, 2, 5, -5, -2), gcdExt(-25, -10));
     }
 }

@@ -53,7 +53,7 @@ class FieldPolynomialRingTest {
         @Test
         void testGcdExt() {
             QuotientField<Polynomial<QuotientField<Integer>.Coset>> field = new QuotientField<>(ring, polynomial(2, 1));
-            GcdExtResult<?> expectedGcdExtResult = new GcdExtResult<>(
+            GcdExtResult<?> expectedGcdExtResult = GcdExtResult.of(
                     zero(), polynomial(3), one(), polynomial(2, 1), polynomial(2)
             );
             assertAll(

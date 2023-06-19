@@ -1,9 +1,10 @@
 package securecompute.algebra;
 
-import com.google.common.base.MoreObjects;
+import com.google.auto.value.AutoValue;
+import securecompute.StreamUtils;
 
-import java.util.Arrays;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public interface EuclideanDomain<E> extends Ring<E> {
 
@@ -28,144 +29,103 @@ public interface EuclideanDomain<E> extends Ring<E> {
     }
 
     default DivModResult<E> divMod(E dividend, E divisor) {
-        return new DivModResult<>(div(dividend, divisor), mod(dividend, divisor));
+        return DivModResult.of(div(dividend, divisor), mod(dividend, divisor));
     }
 
     default E gcd(E left, E right) {
-        return gcdExt(left, right).gcd;
+        return gcdExt(left, right).getGcd();
     }
 
     default E lcm(E left, E right) {
-        return abs(product(gcdExt(left, right).leftDivGcd, right));
+        return abs(product(gcdExt(left, right).getLeftDivGcd(), right));
     }
 
     default GcdExtResult<E> gcdExt(E left, E right) {
-        E x = one(), y = zero(), s = y, t = x;
-        boolean oddSteps = false;
-        while (size(right) > 0) {
-            oddSteps ^= true;
+        PartialGcdExtResult<E> r = partialGcdExtResults(this, left, right)
+                .reduce((a, b) -> b)
+                .orElseThrow(RuntimeException::new);
 
-            DivModResult<? extends E> divModResult = divMod(left, right);
-            left = right;
-            right = divModResult.remainder;
-
-            E oldX = x;
-            x = s;
-            s = difference(oldX, product(s, divModResult.quotient));
-
-            E oldY = y;
-            y = t;
-            t = difference(oldY, product(t, divModResult.quotient));
-        }
-        E u = invSignum(left), v = invSignum(u);
-        s = product(oddSteps ? s : negative(s), v);
-        t = product(oddSteps ? negative(t) : t, v);
-        x = product(x, u);
-        y = product(y, u);
-        left = product(left, u);
+        E u = invSignum(r.left()), v = invSignum(u);
+        E s = product(r.oddStep() ? r.s() : negative(r.s()), v);
+        E t = product(r.oddStep() ? negative(r.t()) : r.t(), v);
+        E x = product(r.x(), u);
+        E y = product(r.y(), u);
+        E gcd = product(r.left(), u);
 
         if (size(s) > 0) {
             DivModResult<? extends E> divModResult = divMod(x, s);
-            x = divModResult.remainder;
-            y = sum(y, product(t, divModResult.quotient));
+            x = divModResult.getRemainder();
+            y = sum(y, product(t, divModResult.getQuotient()));
         }
-        return new GcdExtResult<>(x, y, left, t, s);
+        return GcdExtResult.of(x, y, gcd, t, s);
     }
 
-    final class DivModResult<E> {
+    static <E> Stream<PartialGcdExtResult<E>> partialGcdExtResults(EuclideanDomain<E> ring, E left, E right) {
+        E zero = ring.zero(), one = ring.one();
+        return StreamUtils.iterate(PartialGcdExtResult.of(one, zero, zero, one, left, right, false), Objects::nonNull, r -> {
+            if (ring.size(r.right()) == 0) {
+                return null;
+            }
+            DivModResult<? extends E> divModResult = ring.divMod(r.left(), r.right());
+            E left0 = r.right();
+            E right0 = divModResult.getRemainder();
 
-        private final E quotient, remainder;
+            E x = r.s();
+            E s = ring.difference(r.x(), ring.product(r.s(), divModResult.getQuotient()));
 
-        public DivModResult(E quotient, E remainder) {
-            this.quotient = quotient;
-            this.remainder = remainder;
-        }
+            E y = r.t();
+            E t = ring.difference(r.y(), ring.product(r.t(), divModResult.getQuotient()));
 
-        public E getQuotient() {
-            return quotient;
-        }
+            return PartialGcdExtResult.of(x, y, s, t, left0, right0, !r.oddStep());
+        });
+    }
 
-        public E getRemainder() {
-            return remainder;
-        }
+    @AutoValue
+    abstract class DivModResult<E> {
+        public abstract E getQuotient();
 
-        @Override
-        public boolean equals(Object obj) {
-            return obj == this || obj instanceof DivModResult &&
-                    Objects.equals(quotient, ((DivModResult<?>) obj).quotient) &&
-                    Objects.equals(remainder, ((DivModResult<?>) obj).remainder);
-        }
+        public abstract E getRemainder();
 
-        @Override
-        public int hashCode() {
-            return Objects.hash(quotient, remainder);
-        }
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(this)
-                    .add("quotient", quotient)
-                    .add("remainder", remainder)
-                    .toString();
+        public static <E> DivModResult<E> of(E quotient, E remainder) {
+            return new AutoValue_EuclideanDomain_DivModResult<>(quotient, remainder);
         }
     }
 
-    final class GcdExtResult<E> {
+    @AutoValue
+    abstract class PartialGcdExtResult<E> {
+        public abstract E x();
 
-        private final E x, y, gcd, leftDivGcd, rightDivGcd;
+        public abstract E y();
 
-        public GcdExtResult(E x, E y, E gcd, E leftDivGcd, E rightDivGcd) {
-            this.x = x;
-            this.y = y;
-            this.gcd = gcd;
-            this.leftDivGcd = leftDivGcd;
-            this.rightDivGcd = rightDivGcd;
+        public abstract E s();
+
+        public abstract E t();
+
+        public abstract E left();
+
+        public abstract E right();
+
+        public abstract boolean oddStep();
+
+        public static <E> PartialGcdExtResult<E> of(E x, E y, E s, E t, E left, E right, boolean oddStep) {
+            return new AutoValue_EuclideanDomain_PartialGcdExtResult<>(x, y, s, t, left, right, oddStep);
         }
+    }
 
-        public E getX() {
-            return x;
-        }
+    @AutoValue
+    abstract class GcdExtResult<E> {
+        public abstract E getX();
 
-        public E getY() {
-            return y;
-        }
+        public abstract E getY();
 
-        public E getGcd() {
-            return gcd;
-        }
+        public abstract E getGcd();
 
-        public E getLeftDivGcd() {
-            return leftDivGcd;
-        }
+        public abstract E getLeftDivGcd();
 
-        public E getRightDivGcd() {
-            return rightDivGcd;
-        }
+        public abstract E getRightDivGcd();
 
-        private Object[] allFields() {
-            return new Object[]{x, y, gcd, leftDivGcd, rightDivGcd};
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            return obj == this || obj instanceof GcdExtResult &&
-                    Arrays.equals(allFields(), ((GcdExtResult<?>) obj).allFields());
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(allFields());
-        }
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(this)
-                    .add("x", x)
-                    .add("y", y)
-                    .add("gcd", gcd)
-                    .add("leftDivGcd", leftDivGcd)
-                    .add("rightDivGcd", rightDivGcd)
-                    .toString();
+        public static <E> GcdExtResult<E> of(E x, E y, E gcd, E leftDivGcd, E rightDivGcd) {
+            return new AutoValue_EuclideanDomain_GcdExtResult<>(x, y, gcd, leftDivGcd, rightDivGcd);
         }
     }
 }
