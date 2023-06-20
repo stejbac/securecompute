@@ -64,6 +64,7 @@ public enum BooleanField implements FiniteField<Boolean> {
     }
 
     public static long toBinary(Polynomial<Boolean> polynomial) {
+        //noinspection ConstantConditions
         return Streams.mapWithIndex(polynomial.getCoefficients().stream(), (b, n) -> b ? 1L << n : 0)
                 .mapToLong(n -> n)
                 .sum();

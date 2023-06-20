@@ -1,6 +1,7 @@
 package securecompute.constraint.grid;
 
 import com.google.common.collect.*;
+import securecompute.StreamUtils;
 import securecompute.algebra.FiniteField;
 import securecompute.algebra.module.FiniteVectorSpace;
 import securecompute.algebra.module.block.BlockFiniteVectorSpace;
@@ -112,7 +113,7 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
 
         List<V> topLayer = super.paddedTopLayer(witness);
 
-        Stream<Stream<V>> paddedRows = Streams.zip(
+        Stream<Stream<V>> paddedRows = StreamUtils.zip(
                 Stream.generate(() -> randomElements(symbolSpace).limit(paddingWidth)),
                 Lists.partition(topLayer, witnessWidth).stream().map(List::stream),
                 Stream::concat);
@@ -302,7 +303,7 @@ public class ZeroKnowledgeGridProof<V, E> extends GridProof<V, E> implements Zer
             // TODO: This can be simplified slightly if we make linear codes vector spaces:
             List<W> randomCodeword = code.encode(randomElement(messageSpace));
 
-            List<W> offsetSamples = Streams.zip(samples.stream(), knownSampleIndices.stream(),
+            List<W> offsetSamples = StreamUtils.zip(samples.stream(), knownSampleIndices.stream(),
                     (x, i) -> symbolSpace.difference(x, randomCodeword.get(i)))
                     .collect(ImmutableList.toImmutableList());
 

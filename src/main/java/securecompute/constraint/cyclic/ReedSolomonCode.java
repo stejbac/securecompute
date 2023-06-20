@@ -1,7 +1,7 @@
 package securecompute.constraint.cyclic;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Streams;
+import securecompute.StreamUtils;
 import securecompute.algebra.FiniteField;
 import securecompute.algebra.polynomial.FieldPolynomialRing;
 import securecompute.algebra.polynomial.Polynomial;
@@ -80,12 +80,12 @@ public class ReedSolomonCode<E> extends PuncturedPolynomialCode<E> implements Mu
                 .collect(ImmutableList.toImmutableList());
 
         List<List<E>> transposedBasis = scaledTransposedBasis.stream()
-                .map(v -> Streams.zip(scaleFactors.stream(), v.stream(), field()::product)
+                .map(v -> StreamUtils.zip(scaleFactors.stream(), v.stream(), field()::product)
                         .collect(ImmutableList.toImmutableList()))
                 .collect(ImmutableList.toImmutableList());
 
         return u -> transposedBasis.stream()
-                .map(v -> Streams.zip(u.stream(), v.stream(), field()::product)
+                .map(v -> StreamUtils.zip(u.stream(), v.stream(), field()::product)
                         .reduce(field().zero(), field()::sum))
                 .collect(ImmutableList.toImmutableList());
 

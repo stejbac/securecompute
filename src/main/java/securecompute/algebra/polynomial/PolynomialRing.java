@@ -199,8 +199,9 @@ public class PolynomialRing<E> implements IPolynomialRing<E> {
             if (coefficients.size() == 1) {
                 return coefficients.get(0).toString();
             }
+            //noinspection ConstantConditions
             return Streams.mapWithIndex(coefficients.stream(),
-                    (elt, i) -> asTerm(elt) + (i == 0 ? "" : i == 1 ? "*X" : "*X^" + i))
+                            (elt, i) -> asTerm(elt) + (i == 0 ? "" : i == 1 ? "*X" : "*X^" + i))
                     .collect(Collectors.joining(" + "));
             // "0 + 1*X + 2*X^2 + 10*X^3 + (-3)*X^4"
         }

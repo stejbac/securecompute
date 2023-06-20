@@ -95,12 +95,12 @@ public class Groestl {
                 Variable<Gf256.Element> inVar = variable(j * n + i), outVar = variable((j + 8) * n + i + 1);
                 if (isP) {
                     builder.add(j == 0
-                            ? inVar.add(outVar).add(c(0x10 * i)).add(roundVar)
+                            ? inVar.add(outVar).add(c(0x10L * i)).add(roundVar)
                             : inVar.add(outVar)
                     );
                 } else {
                     builder.add(j == 7
-                            ? inVar.add(outVar).add(c(0xff ^ 0x10 * i)).add(roundVar)
+                            ? inVar.add(outVar).add(c(0xff ^ 0x10L * i)).add(roundVar)
                             : inVar.add(outVar).add(_0xff)
                     );
                 }

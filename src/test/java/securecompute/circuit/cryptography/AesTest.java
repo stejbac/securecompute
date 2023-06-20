@@ -101,10 +101,11 @@ class AesTest implements WithDefaultField<Gf256.Element> {
 
     @Test
     void testLinearTransform() {
+        //noinspection UnstableApiUsage
         List<Gf256.Element> coefficients = IntStream.range(0, 8)
                 .mapToObj(i -> sum(
                         Streams.zip(AFFINE_TRANSFORM_MATRIX_COLUMNS.stream(), FROBENIUS_MAP_MULTIPLIERS.stream(),
-                                (a, b) -> a.multiply(b.pow(1 << i)))))
+                                (a, b) -> a.multiply(b.pow(1L << i)))))
                 .collect(ImmutableList.toImmutableList());
 
         System.out.println(coefficients);

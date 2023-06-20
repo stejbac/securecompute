@@ -28,6 +28,7 @@ class ReedSolomonCodeTest<E> {
     private static final int n = 1000, k = 100;
 
     private static final ReedSolomonCode<?> CODE = new ReedSolomonCode<>(n, k, QUADRATIC_FIELD);
+    @SuppressWarnings("ConstantConditions")
     private static final Map<Integer, ?> KNOWN_SYMBOL_TEST_MAP = Maps.transformValues(ImmutableSortedMap.of(
             0, 0b00000000,
             1, 0b00000001,
@@ -64,6 +65,7 @@ class ReedSolomonCodeTest<E> {
 
     @SuppressWarnings("unused") // referenced by ParamTest2
     private static List<Arguments> testMessages2() {
+        //noinspection ConstantConditions
         return Lists.transform(
                 Lists.cartesianProduct(testMessages(), testMessages()),
                 args -> Arguments.of(args.toArray())
@@ -109,6 +111,7 @@ class ReedSolomonCodeTest<E> {
         List<E> codeword1 = code.encode(message1);
         List<E> codeword2 = code.encode(message2);
 
+        //noinspection UnstableApiUsage
         List<E> pairwiseProduct = Streams.zip(codeword1.stream(), codeword2.stream(), code.field()::product)
                 .collect(ImmutableList.toImmutableList());
 

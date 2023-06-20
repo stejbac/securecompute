@@ -19,6 +19,8 @@ import java.util.stream.IntStream;
 
 import static securecompute.algebra.polynomial.BasePolynomialExpression.variable;
 
+// TODO: Consider breaking dependency on the Guava graph API, which is unfortunately marked @Beta (in its entirety).
+@SuppressWarnings("UnstableApiUsage")
 @AutoValue
 public abstract class ArithmeticCircuit<E> {
 
@@ -90,6 +92,7 @@ public abstract class ArithmeticCircuit<E> {
                     ? ImmutableSet.of()
                     : network().outEdges(gate);
 
+            //noinspection ConstantConditions
             front.putAll(Maps.asMap(outWires, w -> gateOutputs.get(w.fromIndex())));
         }
         throw new AssertionError(); // unreachable
@@ -108,6 +111,7 @@ public abstract class ArithmeticCircuit<E> {
         for (Gate<E> gate : gatesInTopologicalOrder()) {
             int finalOffset = offset;
             offsetMap.put(gate, offset);
+            //noinspection ConstantConditions
             terms.addAll(Lists.transform(gate.function().parityCheckTerms(), p -> p.mapIndices(i -> i + finalOffset)));
             offset += gate.function().length();
         }

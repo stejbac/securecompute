@@ -2,7 +2,7 @@ package securecompute.constraint.grid;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Streams;
+import securecompute.StreamUtils;
 import securecompute.constraint.Constraint;
 import securecompute.constraint.LinearCode;
 import securecompute.constraint.LocallyTestableProof;
@@ -73,7 +73,7 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
         List<List<V>> topLayerRows = Lists.partition(topLayer, rowConstraint().length());
         List<List<V>> topLayerColumns = BlockConstraint.transpose(topLayerRows, rowConstraint().length());
 
-        List<V> middleLayer = Streams.zip(rowPaddingBlock().stream(),
+        List<V> middleLayer = StreamUtils.zip(rowPaddingBlock().stream(),
                 topLayerRows.stream().map(topLayerCode.rowConstraint()::decode),
                 messageConstraint.rowConstraint()::zeroExtendedParity
         )
@@ -81,7 +81,7 @@ public class GridProof<V, E> extends GridConstraint<List<V>> implements LocallyT
                 .flatMap(List::stream)
                 .collect(ImmutableList.toImmutableList());
 
-        List<List<V>> bottomLayerColumns = Streams.zip(columnPaddingBlock().stream(),
+        List<List<V>> bottomLayerColumns = StreamUtils.zip(columnPaddingBlock().stream(),
                 topLayerColumns.stream().map(topLayerCode.columnConstraint()::decode),
                 messageConstraint.columnConstraint()::zeroExtendedParity
         )

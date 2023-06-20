@@ -1,7 +1,7 @@
 package securecompute.algebra.module.block;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Streams;
+import securecompute.StreamUtils;
 import securecompute.algebra.Ring;
 import securecompute.algebra.module.Module;
 
@@ -48,7 +48,7 @@ public class BlockModule<V, E> implements Module<List<V>, E> {
 
     @Override
     public List<V> sum(List<V> left, List<V> right) {
-        return Streams.zip(left.stream(), right.stream(), baseModule::sum)
+        return StreamUtils.zip(left.stream(), right.stream(), baseModule::sum)
                 .collect(ImmutableList.toImmutableList());
     }
 

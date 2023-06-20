@@ -220,6 +220,7 @@ class GroestlTest {
     private static byte[] toDigest(List<Gf256.Element> state, int nBits) {
         int blockSize = nBits > 256 ? 128 : 64;
 
+        //noinspection UnstableApiUsage
         List<Gf256.Element> fullHash = Streams.zip(
                 state.subList(1, blockSize + 1).stream(),
                 asVector(blockSize > 64 ? WIDE_Q_MAPPED_KEY_HEX : Q_MAPPED_KEY_HEX).stream(),

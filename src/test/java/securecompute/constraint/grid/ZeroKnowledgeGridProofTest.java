@@ -65,6 +65,7 @@ class ZeroKnowledgeGridProofTest {
     );
 
     // Modify the last parity column, so that all the columns are good & a minimal number of (non-witness-intersecting) rows are bad:
+    @SuppressWarnings("ConstantConditions")
     private static final List<List<Gf256.Element>> MINIMAL_BAD_VECTOR_OF_ERRORS = Streams.mapWithIndex(ENCODED_VALID_WITNESS.stream(), (x, i) ->
             i % 128 < 127 ? x : ImmutableList.of(x.get(0), x.get(1), MINIMAL_WEIGHT_INVALID_COL.get((int) i / 128))
     ).collect(ImmutableList.toImmutableList());
@@ -145,6 +146,7 @@ class ZeroKnowledgeGridProofTest {
 
         // Real vs. simulated sampled rows & columns are the same, given the same random seed...
         assertEquals(realEvidenceList.size(), simulatedEvidenceList.size());
+        //noinspection UnstableApiUsage
         assertAll(Streams.zip(realEvidenceList.stream(), simulatedEvidenceList.stream(), (e, f) -> () -> {
             assertEquals(e.getClass(), f.getClass());
             assertEquals(e.x, f.x);
