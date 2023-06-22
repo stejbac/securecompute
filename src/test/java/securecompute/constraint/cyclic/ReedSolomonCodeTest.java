@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 class ReedSolomonCodeTest<E> {
 
     private static final Gf256 AES_FIELD = new Gf256(0b100011011, 0b11);
-    private static final Gf65536 QUADRATIC_FIELD = new Gf65536(AES_FIELD, 0b10, 0b10);
+    private static final Gf65536 QUADRATIC_FIELD = new Gf65536(AES_FIELD, 0b100001, 0b1);
     private static final int n = 1000, k = 100;
 
     private static final ReedSolomonCode<?> CODE = new ReedSolomonCode<>(n, k, QUADRATIC_FIELD);

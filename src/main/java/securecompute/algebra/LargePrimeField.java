@@ -25,13 +25,21 @@ public class LargePrimeField extends QuotientField<BigInteger> implements Finite
     }
 
     public LargePrimeField(BigInteger p, boolean checkPrime) {
-        super(BigIntegerRing.INSTANCE, checkPrime ? checkPrime(p) : p);
-        totientCofactors = Suppliers.memoize(() -> findPrimeCofactors(p.subtract(ONE)));
+        this(checkPrime ? checkPrime(p) : p, Suppliers.memoize(() -> findPrimeCofactors(p.subtract(ONE))));
     }
 
     public LargePrimeField(BigInteger p, List<BigInteger> totientPrimeFactors) {
-        super(BigIntegerRing.INSTANCE, checkPrime(p));
-        this.totientCofactors = Suppliers.ofInstance(getPrimeCofactors(p.subtract(ONE), totientPrimeFactors));
+        this(checkPrime(p), Suppliers.ofInstance(getPrimeCofactors(p.subtract(ONE), totientPrimeFactors)));
+    }
+
+    private LargePrimeField(BigInteger p, Supplier<SortedSet<BigInteger>> totientCofactors) {
+        super(BigIntegerRing.INSTANCE, p);
+        this.totientCofactors = totientCofactors;
+    }
+
+    @Override
+    protected LargePrimeField shallowCopy() {
+        return new LargePrimeField(getIdealGenerator(), totientCofactors);
     }
 
     private static BigInteger checkPrime(BigInteger p) {
@@ -108,5 +116,10 @@ public class LargePrimeField extends QuotientField<BigInteger> implements Finite
         } catch (ArithmeticException e) {
             return super.reciprocalOrZero(elt);
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return this == o || o instanceof LargePrimeField && super.equals(o);
     }
 }

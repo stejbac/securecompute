@@ -1,10 +1,15 @@
 package securecompute.algebra;
 
+import securecompute.ShallowCopyable;
+
 import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Random;
+import java.util.stream.IntStream;
 
-public class Gf65536 implements FiniteField<Gf65536.Element> {
+import static com.google.common.base.Preconditions.checkArgument;
+
+public class Gf65536 extends ShallowCopyable implements FiniteField<Gf65536.Element> {
     private static final BigInteger SIZE = BigInteger.valueOf(65536);
 
     private final Gf256 baseField;
@@ -20,11 +25,25 @@ public class Gf65536 implements FiniteField<Gf65536.Element> {
 
     public Gf65536(Gf256.Element a, Gf256.Element b) {
         baseField = a.getField();
-        if (!baseField.equals(b.getField())) {
-            throw new IllegalArgumentException("Coefficients come from different fields");
-        }
+        checkArgument(baseField.equals(b.getField()), "Coefficients come from different fields");
         this.a = a;
         this.b = b;
+        int order = order(primitiveElement);
+        checkArgument(order > 0, "Invalid quadratic extension: generator is reducible (a == 0 or b == 0)");
+        checkArgument(order > 255, "Generator is reducible: got order %s", order);
+        checkArgument(order == 65535, "Generator is not primitive: got order %s", order);
+    }
+
+    private int order(Element elt) {
+        return one.equals(elt.pow(65535)) ? IntStream.of(3, 5, 17, 257)
+                .map(n -> 65535 / n)
+                .filter(n -> one.equals(elt.pow(n)))
+                .reduce(65535, IntegerRing.INSTANCE::gcd) : 0;
+    }
+
+    @Override
+    protected Gf65536 shallowCopy() {
+        return new Gf65536(a, b);
     }
 
     @Override
@@ -45,6 +64,7 @@ public class Gf65536 implements FiniteField<Gf65536.Element> {
 
     @Override
     public Element reciprocalOrZero(Element elt) {
+        checkArgument(equals(elt.getField()), "Field mismatch");
         Gf256.Element x1 = elt.getLsb(), x2 = elt.getMsb(), y = x1.subtract(x2.multiply(b));
         Gf256.Element invNorm = x1.multiply(y).add(x2.multiply(x2).multiply(a)).recipOrZero();
         return element(y.multiply(invNorm), x2.negate().multiply(invNorm));
@@ -67,6 +87,9 @@ public class Gf65536 implements FiniteField<Gf65536.Element> {
 
     @Override
     public Element sum(Element left, Element right) {
+        checkArgument(equals(left.getField()), "LHS field mismatch");
+        checkArgument(equals(right.getField()), "RHS field mismatch");
+
         Gf256.Element x1 = left.getLsb(), x2 = left.getMsb();
         Gf256.Element y1 = right.getLsb(), y2 = right.getMsb();
 
@@ -75,6 +98,9 @@ public class Gf65536 implements FiniteField<Gf65536.Element> {
 
     @Override
     public Element product(Element left, Element right) {
+        checkArgument(equals(left.getField()), "LHS field mismatch");
+        checkArgument(equals(right.getField()), "RHS field mismatch");
+
         Gf256.Element x1 = left.getLsb(), x2 = left.getMsb();
         Gf256.Element y1 = right.getLsb(), y2 = right.getMsb();
         Gf256.Element z1 = x1.multiply(y1), z2 = x1.multiply(y2).add(x2.multiply(y1)), z3 = x2.multiply(y2);
@@ -84,14 +110,25 @@ public class Gf65536 implements FiniteField<Gf65536.Element> {
 
     @Override
     public Element negative(Element elt) {
+        checkArgument(equals(elt.getField()), "Field mismatch");
         return elt;
     }
 
     public Element element(Gf256.Element lsb, Gf256.Element msb) {
-        if (!baseField.equals(lsb.getField()) || !baseField.equals(msb.getField())) {
-            throw new IllegalArgumentException("Coefficients come from the wrong field(s)");
-        }
+        checkArgument(baseField.equals(lsb.getField()), "LSB coefficients come from the wrong field");
+        checkArgument(baseField.equals(msb.getField()), "MSB coefficients come from the wrong field");
         return new Element(lsb.getValue(), msb.getValue());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return this == o || o instanceof Gf65536 && (o.getClass().isAssignableFrom(getClass()) ?
+                a.equals(((Gf65536) o).a) && b.equals(((Gf65536) o).b) : o.equals(this));
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(a, b);
     }
 
     public final class Element implements FieldElement<Element> {
