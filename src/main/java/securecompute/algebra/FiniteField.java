@@ -32,6 +32,14 @@ public interface FiniteField<E> extends Field<E> {
         }
     }
 
+    default PlusMinus<E> invSqrt(E elt) {
+        return PowerTwoRootsOfUnity.powerTwoRootsOfUnity(this).invSqrt(this, elt);
+    }
+
+    default PlusMinus<E> sqrt(E elt) {
+        return PowerTwoRootsOfUnity.powerTwoRootsOfUnity(this).sqrt(this, elt);
+    }
+
     E sampleUniformly(Random random);
 
     default Stream<E> getElements() {

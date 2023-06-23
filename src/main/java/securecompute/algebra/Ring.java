@@ -42,6 +42,16 @@ public interface Ring<E> extends AbelianGroup<E> {
         return elements.reduce(one(), this::product);
     }
 
+    default PlusMinus<E> product(PlusMinus<E> left, E right) {
+        E witness = left.getWitness();
+        return witness != null ? plusMinus(product(witness, right)) : PlusMinus.ofMissing(this);
+    }
+
+    default PlusMinus<E> product(PlusMinus<E> left, PlusMinus<E> right) {
+        E witness = right.getWitness();
+        return witness != null ? product(left, witness) : PlusMinus.ofMissing(this);
+    }
+
     default E power(E elt, long exponent) {
         return power(elt, BigInteger.valueOf(exponent));
     }

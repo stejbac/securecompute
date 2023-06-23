@@ -7,6 +7,8 @@ import java.math.BigInteger;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public interface AbelianGroup<E> {
 
     E zero();
@@ -50,6 +52,19 @@ public interface AbelianGroup<E> {
                         sum(x6, x6), sum(x6, x7), sum(x7, x7), sum(x7, x8)
                 );
         return windowedProduct(this, table, k);
+    }
+
+    default PlusMinus<E> product(PlusMinus<E> plusMinus, long k) {
+        return product(plusMinus, BigInteger.valueOf(k));
+    }
+
+    default PlusMinus<E> product(PlusMinus<E> plusMinus, BigInteger k) {
+        E witness = plusMinus.getWitness();
+        return witness != null ? plusMinus(product(witness, k)) : PlusMinus.ofMissing(this);
+    }
+
+    default PlusMinus<E> plusMinus(E elt) {
+        return new WitnessedPlusMinus<>(checkNotNull(elt), this);
     }
 
     default E select(int index, List<E> elements) {

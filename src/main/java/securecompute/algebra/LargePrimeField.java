@@ -119,6 +119,11 @@ public class LargePrimeField extends QuotientField<BigInteger> implements Finite
     }
 
     @Override
+    public PlusMinus<LargePrimeField.Coset> plusMinus(LargePrimeField.Coset elt) {
+        return super.plusMinus(elt.getWitness().testBit(0) ? elt.negate() : elt);
+    }
+
+    @Override
     public boolean equals(Object o) {
         return this == o || o instanceof LargePrimeField && super.equals(o);
     }

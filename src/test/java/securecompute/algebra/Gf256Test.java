@@ -2,10 +2,11 @@ package securecompute.algebra;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
+import java.util.Random;
 import java.util.stream.LongStream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 class Gf256Test {
     @Test
@@ -65,5 +66,41 @@ class Gf256Test {
             return i;
         }
         return fail("Could not find valid quadratic extension of " + baseFieldName);
+    }
+
+    @Test
+    void testSqrt() {
+        Random rnd = new Random(1212);
+        Gf256 aesField = new Gf256(0b100011011, 0b11);
+        Gf65536 quadraticField = new Gf65536(aesField, 0b100001, 0b1);
+        Gf256.Element zero = aesField.zero(), one = aesField.one();
+        Gf65536.Element zeroQ = quadraticField.zero(), oneQ = quadraticField.one();
+
+        assertTrue(aesField.sqrt(zero).isHalfZero());
+        assertTrue(quadraticField.sqrt(zeroQ).isHalfZero());
+        assertEquals(zero, aesField.sqrt(zero).getWitness());
+        assertEquals(zeroQ, quadraticField.sqrt(zeroQ).getWitness());
+        assertEquals(PlusMinus.ofMissing(aesField), aesField.invSqrt(zero));
+        assertEquals(PlusMinus.ofMissing(quadraticField), quadraticField.invSqrt(zeroQ));
+
+        assertAll(Collections.nCopies(10, () -> {
+            Gf256.Element x = aesField.sampleUniformly(rnd);
+            Gf256.Element y = aesField.sampleUniformly(rnd);
+
+            assertTrue(aesField.sqrt(x).isHalfZero());
+            assertEquals(x, aesField.sqrt(x).getWitness().pow(2));
+            if (!x.equals(zero)) {
+                assertEquals(one, aesField.sqrt(x).getWitness().multiply(aesField.invSqrt(x).getWitness()));
+            }
+            assertEquals(aesField.sqrt(x).getWitness().add(aesField.sqrt(y).getWitness()), aesField.sqrt(x.add(y)).getWitness());
+
+            Gf65536.Element q = quadraticField.element(x, y);
+
+            assertTrue(quadraticField.sqrt(q).isHalfZero());
+            assertEquals(q, quadraticField.sqrt(q).getWitness().pow(2));
+            if (!q.equals(zeroQ)) {
+                assertEquals(oneQ, quadraticField.sqrt(q).getWitness().multiply(quadraticField.invSqrt(q).getWitness()));
+            }
+        }));
     }
 }

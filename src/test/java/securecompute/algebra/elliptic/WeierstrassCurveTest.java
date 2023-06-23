@@ -19,8 +19,6 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.*;
 
 class WeierstrassCurveTest {
-//    private static final BigInteger TWO = BigInteger.valueOf(2);
-
     private static final QuotientField<Integer> Z_223 = new QuotientField<>(IntegerRing.INSTANCE, 223);
     private static final WeierstrassCurve<QuotientField<Integer>.Coset> CURVE = new WeierstrassCurve<>(Z_223, Z_223.zero(), Z_223.fromLong(7));
 
@@ -124,20 +122,4 @@ class WeierstrassCurveTest {
                     }
                 })));
     }
-
-//    private static Optional<LargePrimeField.Coset> sqrt(LargePrimeField.Coset x) {
-//        BigInteger p = x.getField().getIdealGenerator();
-//        BigInteger pMinus1 = p.subtract(ONE);
-//        int n = 0;
-//        while (!pMinus1.testBit(n)) {
-//            n++;
-//        }
-//        for (BigInteger i = ONE; i.bitLength() <= n; i = i.add(TWO)) {
-//            LargePrimeField.Coset y = x.pow(pMinus1.multiply(i).shiftRight(n + 1).add(ONE));
-//            if (x.equals(y.pow(2))) {
-//                return Optional.of(x);
-//            }
-//        }
-//        return Optional.empty();
-//    }
 }

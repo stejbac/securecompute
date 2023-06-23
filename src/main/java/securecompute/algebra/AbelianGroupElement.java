@@ -27,4 +27,8 @@ public interface AbelianGroupElement<E> {
     default E multiply(BigInteger k) {
         return getAbelianGroup().product(cast(), k);
     }
+
+    default PlusMinus<E> plusMinus() {
+        return getAbelianGroup().plusMinus(cast());
+    }
 }
