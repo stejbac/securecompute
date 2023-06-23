@@ -1,7 +1,9 @@
 package securecompute.algebra.elliptic;
 
 import com.google.auto.value.AutoValue;
+import securecompute.Lazy;
 import securecompute.algebra.Field;
+import securecompute.algebra.FiniteField;
 
 public class ProjectiveWeierstrassCurve<E> extends AbstractP2PointCurve<E, ProjectiveWeierstrassCurve.Point<E>> {
     private final E a, b;
@@ -10,6 +12,14 @@ public class ProjectiveWeierstrassCurve<E> extends AbstractP2PointCurve<E, Proje
         super(field, P2PointCoordinates.of(field.zero(), field.one(), field.zero()));
         this.a = a;
         this.b = b;
+    }
+
+    public E getA() {
+        return a;
+    }
+
+    public E getB() {
+        return b;
     }
 
     @Override
@@ -75,19 +85,55 @@ public class ProjectiveWeierstrassCurve<E> extends AbstractP2PointCurve<E, Proje
         return 88;
     }
 
+    private E cubic(E x, E z) {
+        E z2 = sq(z), z3 = p(z, z2);
+        return s(p(x, s(sq(x), p(z2, a))), p(z3, b));
+    }
+
     @Override
     public boolean isCurvePoint(E x, E y, E z) {
-        if (z.equals(field.zero()) && y.equals(field.zero())) {
-            return false;
-        }
-        E z2 = sq(z), z3 = p(z, z2);
-        E cubic = s(p(x, s(sq(x), p(z2, a))), p(z3, b));
-        return cubic.equals(p(sq(y), z));
+        return (!z.equals(field.zero()) || !y.equals(field.zero())) && cubic(x, z).equals(p(sq(y), z));
+    }
+
+    @Override
+    boolean isNegative(Point<E> elt) {
+        E y = elt.normalCoordinates().get().y();
+        return !field.plusMinus(y).getWitness().equals(y) && !elt.equals(zero());
     }
 
     @Override
     Point<E> rawPoint(P2PointCoordinates<E> pointCoordinates) {
-        return new AutoValue_ProjectiveWeierstrassCurve_Point<>(new LazyCoordinates(pointCoordinates), this);
+        return new AutoValue_ProjectiveWeierstrassCurve_Point<>(new LazyCoordinates2(pointCoordinates), this);
+    }
+
+    @Override
+    PlusMinusPoint<E> plusMinusPoint(P1PointCoordinates<E> p1Coordinates) {
+        Lazy<Point<E>> lazyWitness = Lazy.of(() -> {
+            E x = p1Coordinates.x(), z = p1Coordinates.y(), zero = field.zero();
+            if (z.equals(zero)) {
+                return x.equals(zero) ? null : zero();
+            }
+            E cubic = cubic(x, z);
+            if (cubic.equals(zero)) {
+                return rawPoint(x, zero, z);
+            }
+            if (!(field instanceof FiniteField)) {
+                throw new UnsupportedOperationException("Cannot compute square root");
+            }
+            FiniteField<E> field = (FiniteField<E>) this.field;
+            E y = field.product(field.invSqrt(p(z, cubic)), cubic).getWitness();
+            Point<E> witness;
+            return y != null ? isNegative(witness = rawPoint(x, y, z)) ? witness.negate() : witness : null;
+        });
+        return new AutoValue_ProjectiveWeierstrassCurve_PlusMinusPoint<>(new LazyCoordinates1(p1Coordinates), lazyWitness, this);
+    }
+
+    @Override
+    public PlusMinusPoint<E> plusMinus(Point<E> elt) {
+        P1PointCoordinates<E> p1Coordinates = elt.coordinates().z().equals(field.zero())
+                ? P1PointCoordinates.of(field.one(), field.zero())
+                : P1PointCoordinates.of(elt.coordinates().x(), elt.coordinates().z());
+        return new AutoValue_ProjectiveWeierstrassCurve_PlusMinusPoint<>(new LazyCoordinates1(p1Coordinates), lazyAbs(elt), this);
     }
 
     @AutoValue
@@ -95,6 +141,19 @@ public class ProjectiveWeierstrassCurve<E> extends AbstractP2PointCurve<E, Proje
         @Override
         public Point<E> cast() {
             return this;
+        }
+
+        @Override
+        public abstract ProjectiveWeierstrassCurve<E> getAbelianGroup();
+    }
+
+    @AutoValue
+    public static abstract class PlusMinusPoint<E> extends AbstractP2PointCurve.PlusMinusPoint<E, Point<E>> {
+        @Override
+        public boolean isHalfZero() {
+            E x = coordinates().x(), z = coordinates().y();
+            E quartic = getAbelianGroup().p(z, getAbelianGroup().cubic(x, z));
+            return quartic.equals(getAbelianGroup().field.negative(quartic));
         }
 
         @Override

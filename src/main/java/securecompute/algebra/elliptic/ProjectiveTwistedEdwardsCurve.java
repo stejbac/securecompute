@@ -1,7 +1,9 @@
 package securecompute.algebra.elliptic;
 
 import com.google.auto.value.AutoValue;
+import securecompute.Lazy;
 import securecompute.algebra.Field;
+import securecompute.algebra.FiniteField;
 
 public class ProjectiveTwistedEdwardsCurve<E> extends AbstractP2PointCurve<E, ProjectiveTwistedEdwardsCurve.Point<E>> {
     private final E a, d;
@@ -10,6 +12,14 @@ public class ProjectiveTwistedEdwardsCurve<E> extends AbstractP2PointCurve<E, Pr
         super(field, P2PointCoordinates.of(field.zero(), field.one(), field.one()));
         this.a = a;
         this.d = d;
+    }
+
+    public E getA() {
+        return a;
+    }
+
+    public E getD() {
+        return d;
     }
 
     @Override
@@ -67,8 +77,48 @@ public class ProjectiveTwistedEdwardsCurve<E> extends AbstractP2PointCurve<E, Pr
     }
 
     @Override
+    boolean isNegative(ProjectiveTwistedEdwardsCurve.Point<E> elt) {
+        E x = elt.normalCoordinates().get().x();
+        return !field.plusMinus(x).getWitness().equals(x);
+    }
+
+    @Override
     Point<E> rawPoint(P2PointCoordinates<E> pointCoordinates) {
-        return new AutoValue_ProjectiveTwistedEdwardsCurve_Point<>(new LazyCoordinates(pointCoordinates), this);
+        return new AutoValue_ProjectiveTwistedEdwardsCurve_Point<>(new LazyCoordinates2(pointCoordinates), this);
+    }
+
+    @Override
+    PlusMinusPoint<E> plusMinusPoint(P1PointCoordinates<E> p1Coordinates) {
+        // x2 = (1 - y2) / (a - d * y2). So x = invSqrt((a - d * y2) * (1 - y2)) * (1 - y2).
+        // So X = invSqrt((a * Z2 - d * Y2) * (Z2 - Y2) * Z2) * (Z2 - Y2) * Z2.
+        Lazy<Point<E>> lazyWitness = Lazy.of(() -> {
+            E y = p1Coordinates.x(), z = p1Coordinates.y(), zero = field.zero();
+            if (z.equals(zero)) {
+                return null;
+            }
+            E yy = sq(y), zz = sq(z);
+            E r1 = d(p(zz, a), p(d, yy)), r2 = p(d(zz, yy), zz);
+            if (r1.equals(zero)) {
+                throw new ArithmeticException("Bad curve: Found square root of a/d: " + field.quotient(y, z));
+            }
+            if (r2.equals(zero)) {
+                return rawPoint(zero, y, z);
+            }
+            if (!(field instanceof FiniteField)) {
+                throw new UnsupportedOperationException("Cannot compute square root");
+            }
+            FiniteField<E> field = (FiniteField<E>) this.field;
+            E x = field.product(field.invSqrt(p(r1, r2)), r2).getWitness();
+            Point<E> witness;
+            return x != null ? isNegative(witness = rawPoint(x, y, z)) ? witness.negate() : witness : null;
+        });
+        return new AutoValue_ProjectiveTwistedEdwardsCurve_PlusMinusPoint<>(new LazyCoordinates1(p1Coordinates), lazyWitness, this);
+    }
+
+    @Override
+    public PlusMinusPoint<E> plusMinus(Point<E> elt) {
+        P1PointCoordinates<E> p1Coordinates = P1PointCoordinates.of(elt.coordinates().y(), elt.coordinates().z());
+        return new AutoValue_ProjectiveTwistedEdwardsCurve_PlusMinusPoint<>(new LazyCoordinates1(p1Coordinates), lazyAbs(elt), this);
     }
 
     @AutoValue
@@ -76,6 +126,18 @@ public class ProjectiveTwistedEdwardsCurve<E> extends AbstractP2PointCurve<E, Pr
         @Override
         public Point<E> cast() {
             return this;
+        }
+
+        @Override
+        public abstract ProjectiveTwistedEdwardsCurve<E> getAbelianGroup();
+    }
+
+    @AutoValue
+    public static abstract class PlusMinusPoint<E> extends AbstractP2PointCurve.PlusMinusPoint<E, Point<E>> {
+        @Override
+        public boolean isHalfZero() {
+            E y = coordinates().x(), z = coordinates().y(), minus_z = getAbelianGroup().field.negative(z);
+            return z.equals(minus_z) || y.equals(z) || y.equals(minus_z);
         }
 
         @Override

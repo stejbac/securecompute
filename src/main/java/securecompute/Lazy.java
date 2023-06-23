@@ -7,6 +7,15 @@ public abstract class Lazy<T> implements Supplier<T> {
 
     protected abstract T compute();
 
+    public static <T> Lazy<T> of(Supplier<T> supplier) {
+        return new Lazy<T>() {
+            @Override
+            protected T compute() {
+                return supplier.get();
+            }
+        };
+    }
+
     @Override
     public T get() {
         T value = this.value;

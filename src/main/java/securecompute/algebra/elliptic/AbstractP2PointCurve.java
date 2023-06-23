@@ -6,6 +6,7 @@ import securecompute.Lazy;
 import securecompute.algebra.AbelianGroup;
 import securecompute.algebra.AbelianGroupElement;
 import securecompute.algebra.Field;
+import securecompute.algebra.PlusMinus;
 
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -23,7 +24,11 @@ public abstract class AbstractP2PointCurve<E, P extends AbstractP2PointCurve.Poi
 
     public abstract boolean isCurvePoint(E x, E y, E z);
 
+    abstract boolean isNegative(P elt);
+
     abstract P rawPoint(P2PointCoordinates<E> pointCoordinates);
+
+    abstract PlusMinusPoint<E, P> plusMinusPoint(P1PointCoordinates<E> p1Coordinates);
 
     abstract P2PointCoordinates<E> negative(P2PointCoordinates<E> p);
 
@@ -42,6 +47,10 @@ public abstract class AbstractP2PointCurve<E, P extends AbstractP2PointCurve.Poi
     public P negative(P elt) {
         checkCurve(elt);
         return rawPoint(negative(elt.coordinates()));
+    }
+
+    Lazy<P> lazyAbs(P elt) {
+        return Lazy.of(() -> isNegative(elt) ? negative(elt) : elt);
     }
 
     E s(E left, E right) {
@@ -118,6 +127,10 @@ public abstract class AbstractP2PointCurve<E, P extends AbstractP2PointCurve.Poi
         return rawPoint(P2PointCoordinates.of(x, y, z));
     }
 
+    public PlusMinusPoint<E, P> plusMinusPoint(E x, E y) {
+        return plusMinusPoint(P1PointCoordinates.of(x, y));
+    }
+
     public P point(E x, E y, E z) {
         if (!isCurvePoint(x, y, z)) {
             throw new IllegalArgumentException("Invalid curve point: (" + x + " : " + y + " : " + z + ")");
@@ -125,9 +138,9 @@ public abstract class AbstractP2PointCurve<E, P extends AbstractP2PointCurve.Poi
         return rawPoint(x, y, z);
     }
 
-    public abstract static class Point<E, P> implements AbelianGroupElement<P> {
+    public abstract static class Point<E, P extends Point<E, P>> implements AbelianGroupElement<P> {
         P2PointCoordinates<E> coordinates() {
-            return ((AbstractP2PointCurve<E, ?>.LazyCoordinates) normalCoordinates()).originalCoordinates;
+            return ((AbstractP2PointCurve<E, ?>.LazyCoordinates2) normalCoordinates()).originalCoordinates;
         }
 
         public abstract Lazy<P2PointCoordinates<E>> normalCoordinates();
@@ -138,10 +151,43 @@ public abstract class AbstractP2PointCurve<E, P extends AbstractP2PointCurve.Poi
         }
     }
 
-    class LazyCoordinates extends Lazy<P2PointCoordinates<E>> {
+    public abstract static class PlusMinusPoint<E, P extends Point<E, P>> implements PlusMinus<P> {
+        P1PointCoordinates<E> coordinates() {
+            return ((AbstractP2PointCurve<E, ?>.LazyCoordinates1) normalCoordinates()).originalCoordinates;
+        }
+
+        public abstract Lazy<P1PointCoordinates<E>> normalCoordinates();
+
+        abstract Lazy<P> lazyWitness();
+
+        @Override
+        public P getWitness() {
+            return lazyWitness().get();
+        }
+
+        @Override
+        public String toString() {
+            return normalCoordinates().toString();
+        }
+    }
+
+    class LazyCoordinates1 extends Lazy<P1PointCoordinates<E>> {
+        private final P1PointCoordinates<E> originalCoordinates;
+
+        LazyCoordinates1(P1PointCoordinates<E> originalCoordinates) {
+            this.originalCoordinates = originalCoordinates;
+        }
+
+        @Override
+        protected P1PointCoordinates<E> compute() {
+            return originalCoordinates.normalForm(field);
+        }
+    }
+
+    class LazyCoordinates2 extends Lazy<P2PointCoordinates<E>> {
         private final P2PointCoordinates<E> originalCoordinates;
 
-        LazyCoordinates(P2PointCoordinates<E> originalCoordinates) {
+        LazyCoordinates2(P2PointCoordinates<E> originalCoordinates) {
             this.originalCoordinates = originalCoordinates;
         }
 

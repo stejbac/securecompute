@@ -1,12 +1,17 @@
 package securecompute.algebra.elliptic;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.LinkedHashMultiset;
+import com.google.common.collect.Multiset;
 import org.junit.jupiter.api.Test;
 import securecompute.algebra.LargePrimeField;
+import securecompute.algebra.PlusMinus;
 import securecompute.algebra.elliptic.ProjectiveTwistedEdwardsCurve.Point;
 
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -54,6 +59,9 @@ class ProjectiveTwistedEdwardsCurveTest {
 
     @Test
     void testBigCurve() {
+        assertNotNull(Z_P.sqrt(ED_25519.getA()).getWitness());
+        assertNull(Z_P.sqrt(ED_25519.getD()).getWitness());
+
         assertEquals(Z_P.fromLong(2), Z_P.getPrimitiveElement());
         assertEquals(Z_L.fromLong(2), Z_L.getPrimitiveElement());
 
@@ -62,5 +70,63 @@ class ProjectiveTwistedEdwardsCurveTest {
 //            B.multiply(L);
 //        }
         assertEquals(ED_25519.zero(), B.multiply(L));
+    }
+
+    @Test
+    void testPlusMinusPoint() {
+        assertEquals(ED_25519.zero(), ED_25519.plusMinusPoint(Z_P.one(), Z_P.one()).getWitness());
+        assertNotNull(ED_25519.plusMinusPoint(MINUS_ONE, Z_P.one()).getWitness());
+        assertNotNull(ED_25519.plusMinusPoint(Z_P.zero(), Z_P.one()).getWitness());
+        assertNull(ED_25519.plusMinusPoint(Z_P.one(), Z_P.zero()).getWitness());
+        assertNull(ED_25519.plusMinusPoint(Z_P.zero(), Z_P.zero()).getWitness());
+    }
+
+    @Test
+    void testCompressDecompress() {
+        Point<LargePrimeField.Coset> B = ED_25519.point(Z_P.coset(B_X), Z_P.coset(B_Y), Z_P.one());
+        for (int i = 1; i <= 10; i++) {
+            Point<LargePrimeField.Coset> p = B.multiply(i);
+            PlusMinus<Point<LargePrimeField.Coset>> plusMinus = checkCompressDecompress(p);
+            assertFalse(plusMinus.isHalfZero());
+        }
+    }
+
+    @Test
+    void testSmallSubgroup() {
+        Random rnd = new Random(1234567);
+        Multiset<Point<LargePrimeField.Coset>> pointMultiset = LinkedHashMultiset.create();
+        for (int i = 0; i < 100; i++) {
+            LargePrimeField.Coset y = Z_P.sampleUniformly(rnd);
+            Point<LargePrimeField.Coset> point = ED_25519.plusMinusPoint(y, Z_P.one()).getWitness();
+            if (point != null) {
+                point = point.multiply(L);
+                checkCompressDecompress(point);
+                pointMultiset.add(point);
+            }
+        }
+        for (Point<LargePrimeField.Coset> point : pointMultiset.elementSet()) {
+            System.out.println("Got " + pointMultiset.count(point) + " occurrences of:");
+            System.out.println(point);
+            int i = 1;
+            while (!point.multiply(i).equals(ED_25519.zero())) {
+                assertTrue(i++ < 8);
+            }
+            System.out.println("Order = " + i +
+                    ", isNegative = " + ED_25519.isNegative(point) +
+                    ", isHalfZero = " + point.plusMinus().isHalfZero());
+            System.out.println();
+        }
+        System.out.println("Got " + (100 - pointMultiset.size()) + " missing points.");
+    }
+
+    private static PlusMinus<Point<LargePrimeField.Coset>> checkCompressDecompress(Point<LargePrimeField.Coset> p) {
+        P1PointCoordinates<LargePrimeField.Coset> p1Coordinates = ED_25519.plusMinus(p).coordinates();
+        PlusMinus<Point<LargePrimeField.Coset>> plusMinus = ED_25519.plusMinusPoint(p1Coordinates);
+        Point<LargePrimeField.Coset> decoded = plusMinus.getWitness();
+
+        assertNotNull(decoded);
+        assertEquals(ImmutableSet.of(p, p.negate()), ImmutableSet.of(decoded, decoded.negate()));
+        assertFalse(decoded.normalCoordinates().get().x().getWitness().testBit(0));
+        return plusMinus;
     }
 }

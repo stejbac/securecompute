@@ -1,6 +1,7 @@
 package securecompute.algebra.elliptic;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.Test;
 import securecompute.StreamUtils;
 import securecompute.algebra.*;
@@ -91,12 +92,45 @@ class ProjectiveWeierstrassCurveTest {
 
     @Test
     void testBigCurve() {
+        assertEquals(Z_P.zero(), SEC_P256K1.getA());
+        assertEquals(Z_P.fromLong(7), SEC_P256K1.getB());
+
         assertTrue(SEC_P256K1.isCurvePoint(Z_P.coset(G_X), Z_P.coset(G_Y), Z_P.one()));
         Point<LargePrimeField.Coset> G = point(SEC_P256K1, G_X, G_Y);
 //        for (int i = 0; i < 10000; i++) {
 //            G.multiply(N);
 //        }
         assertEquals(SEC_P256K1.zero(), G.multiply(N));
+    }
+
+    @Test
+    void testPlusMinusPoint() {
+        assertEquals(SEC_P256K1.zero(), SEC_P256K1.plusMinusPoint(Z_P.one(), Z_P.zero()).getWitness());
+        assertTrue(SEC_P256K1.plusMinusPoint(Z_P.one(), Z_P.zero()).isHalfZero());
+        assertNull(SEC_P256K1.plusMinusPoint(Z_P.zero(), Z_P.zero()).getWitness());
+        assertNull(SEC_P256K1.plusMinusPoint(Z_P.zero(), Z_P.one()).getWitness());
+        assertNotNull(SEC_P256K1.plusMinusPoint(Z_P.one(), Z_P.one()).getWitness());
+    }
+
+    @Test
+    void testCompressDecompress() {
+        Point<LargePrimeField.Coset> G = point(SEC_P256K1, G_X, G_Y);
+        for (int i = 1; i <= 10; i++) {
+            Point<LargePrimeField.Coset> p = G.multiply(i);
+            PlusMinus<Point<LargePrimeField.Coset>> plusMinus = checkCompressDecompress(p);
+            assertFalse(plusMinus.isHalfZero());
+        }
+    }
+
+    private static PlusMinus<Point<LargePrimeField.Coset>> checkCompressDecompress(Point<LargePrimeField.Coset> p) {
+        P1PointCoordinates<LargePrimeField.Coset> p1Coordinates = SEC_P256K1.plusMinus(p).coordinates();
+        PlusMinus<Point<LargePrimeField.Coset>> plusMinus = SEC_P256K1.plusMinusPoint(p1Coordinates);
+        Point<LargePrimeField.Coset> decoded = plusMinus.getWitness();
+
+        assertNotNull(decoded);
+        assertEquals(ImmutableSet.of(p, p.negate()), ImmutableSet.of(decoded, decoded.negate()));
+        assertFalse(decoded.normalCoordinates().get().y().getWitness().testBit(0));
+        return plusMinus;
     }
 
     @Test
