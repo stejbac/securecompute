@@ -123,7 +123,7 @@ public class Gf65536 extends ShallowCopyable implements FiniteField<Gf65536.Elem
     @Override
     public boolean equals(Object o) {
         return this == o || o instanceof Gf65536 && (o.getClass().isAssignableFrom(getClass()) ?
-                a.equals(((Gf65536) o).a) && b.equals(((Gf65536) o).b) : o.equals(this));
+                a.equals(((Gf65536) o).a) && b.equals(((Gf65536) o).b) : o.equals(shallowCopy()));
     }
 
     @Override

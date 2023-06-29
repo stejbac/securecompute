@@ -152,7 +152,7 @@ public class Gf256 extends ShallowCopyable implements FiniteField<Gf256.Element>
     public boolean equals(Object o) {
         return this == o || o instanceof Gf256 && (o.getClass().isAssignableFrom(getClass()) ?
                 irreduciblePolynomial == ((Gf256) o).irreduciblePolynomial &&
-                        generator == ((Gf256) o).generator : o.equals(this));
+                        generator == ((Gf256) o).generator : o.equals(shallowCopy()));
     }
 
     @Override

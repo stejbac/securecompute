@@ -93,7 +93,7 @@ public class QuotientField<E> extends ShallowCopyable implements Field<QuotientF
     public boolean equals(Object o) {
         return this == o || o instanceof QuotientField && (o.getClass().isAssignableFrom(getClass()) ?
                 baseRing.equals(((QuotientField<?>) o).baseRing) &&
-                        Objects.equals(idealGenerator, ((QuotientField<?>) o).idealGenerator) : o.equals(this));
+                        Objects.equals(idealGenerator, ((QuotientField<?>) o).idealGenerator) : o.equals(shallowCopy()));
     }
 
     @Override
