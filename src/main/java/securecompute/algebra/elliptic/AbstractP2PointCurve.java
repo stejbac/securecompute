@@ -113,13 +113,13 @@ public abstract class AbstractP2PointCurve<E, P extends AbstractP2PointCurve.Poi
     }
 
     @Override
-    public P select(int index, List<P> elements) {
+    public P select(List<P> elements, int index) {
         //noinspection ConstantConditions
-        E x = field.select(index, Lists.transform(elements, p -> p.coordinates().x()));
+        E x = field.select(Lists.transform(elements, p -> p.coordinates().x()), index);
         //noinspection ConstantConditions
-        E y = field.select(index, Lists.transform(elements, p -> p.coordinates().y()));
+        E y = field.select(Lists.transform(elements, p -> p.coordinates().y()), index);
         //noinspection ConstantConditions
-        E z = field.select(index, Lists.transform(elements, p -> p.coordinates().z()));
+        E z = field.select(Lists.transform(elements, p -> p.coordinates().z()), index);
         return rawPoint(x, y, z);
     }
 

@@ -2,6 +2,7 @@ package securecompute.algebra;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
+import securecompute.combinations.Structure;
 
 import java.math.BigInteger;
 import java.util.List;
@@ -9,7 +10,7 @@ import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public interface AbelianGroup<E> {
+public interface AbelianGroup<E> extends Structure<E> {
 
     E zero();
 
@@ -67,10 +68,6 @@ public interface AbelianGroup<E> {
         return new WitnessedPlusMinus<>(checkNotNull(elt), this);
     }
 
-    default E select(int index, List<E> elements) {
-        return elements.get(index);
-    }
-
     static <E> E windowedProduct(AbelianGroup<E> group, List<E> table, BigInteger k) {
         E zero = group.zero();
         int bitLength = k.bitLength();
@@ -79,7 +76,7 @@ public interface AbelianGroup<E> {
         E acc = zero;
         for (int i = bitLength - 1 & -logTableSize; i >= 0; i -= logTableSize) {
             int index = (bytes[bytes.length - i / 8 - 1] & 0x0ff) >> (i & 7) & table.size() - 1;
-            E tableElt = group.select(index, table);
+            E tableElt = group.select(table, index);
             for (int j = 0; j < logTableSize; j++) {
                 acc = acc != zero ? group.sum(acc, acc) : zero;
             }
